@@ -1,0 +1,2 @@
+export { MicroLocationPage } from './MicroLocationPage'
+

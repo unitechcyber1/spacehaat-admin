@@ -1,0 +1,1 @@
+export { BrandFormPage } from './BrandFormPage'

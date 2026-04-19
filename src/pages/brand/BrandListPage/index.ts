@@ -1,0 +1,1 @@
+export { BrandListPage } from './BrandListPage'

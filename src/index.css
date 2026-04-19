@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --app-bg: radial-gradient(900px 340px at 25% 5%, rgba(139, 92, 246, 0.18), transparent),
+      radial-gradient(900px 340px at 75% 20%, rgba(59, 130, 246, 0.16), transparent),
+      radial-gradient(900px 340px at 60% 95%, rgba(16, 185, 129, 0.12), transparent),
+      linear-gradient(180deg, #fbfcff 0%, #f6f7ff 40%, #f8fafc 100%);
+  }
+
+  body {
+    background: var(--app-bg);
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
