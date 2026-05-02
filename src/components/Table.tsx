@@ -1,3 +1,4 @@
+import type { HTMLAttributes } from 'react'
 import { cn } from '../lib/ui'
 
 export function Table({
@@ -21,9 +22,19 @@ export function Table({
   )
 }
 
-export function Th({ children }: { children: React.ReactNode }) {
+export function Th({
+  children,
+  className,
+  ...props
+}: HTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+    <th
+      {...props}
+      className={cn(
+        'whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600',
+        className,
+      )}
+    >
       {children}
     </th>
   )
@@ -41,7 +52,11 @@ export function Td({
   )
 }
 
-export function Tr({ children }: { children: React.ReactNode }) {
-  return <tr className="border-t border-slate-100/80 hover:bg-slate-50/60">{children}</tr>
+export function Tr({ children, className, ...props }: HTMLAttributes<HTMLTableRowElement>) {
+  return (
+    <tr {...props} className={cn('border-t border-slate-100/80 hover:bg-slate-50/60', className)}>
+      {children}
+    </tr>
+  )
 }
 

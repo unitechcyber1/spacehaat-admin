@@ -1,5 +1,6 @@
 import { apiClient } from '../apiClient'
 import type { LoginRequest, LoginResponse } from './auth.types'
+import { clearStoredAuth, isAuthTokenExpired } from './session'
 
 export async function login(payload: LoginRequest) {
   const res = await apiClient.post<LoginResponse>('admin/login', payload)
@@ -9,7 +10,7 @@ export async function login(payload: LoginRequest) {
 }
 
 export function logout() {
-  localStorage.removeItem('user')
+  clearStoredAuth()
 }
 
 export function getStoredUser(): any | null {
@@ -25,6 +26,11 @@ export function getStoredUser(): any | null {
 export function isAuthenticated() {
   const u = getStoredUser()
   const token = u?.token ?? u?.user?.token
-  return Boolean(token)
+  if (!token) return false
+  if (isAuthTokenExpired(token)) {
+    clearStoredAuth()
+    return false
+  }
+  return true
 }
 

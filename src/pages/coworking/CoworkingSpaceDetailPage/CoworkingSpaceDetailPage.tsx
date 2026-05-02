@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Bars3Icon } from '@heroicons/react/24/outline'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -7,7 +8,8 @@ import { Input } from '../../../components/Input'
 import { PageShell } from '../../../components/PageShell'
 import { RichTextEditor } from '../../../components/RichTextEditor'
 import { Table, Td, Th, Tr } from '../../../components/Table'
-import { env } from '../../../lib/env'
+import { cn } from '../../../lib/ui'
+import { buildCoworkingListingPreviewUrl } from '../../../lib/coworkingPreviewUrl'
 import { getActivePlanCategories } from '../../../services/coworking/activePlanCategories.service'
 import type { Amenity } from '../../../services/coworking/amenity.service'
 import { getAmenities } from '../../../services/coworking/amenity.service'
@@ -27,6 +29,7 @@ import { deleteS3File, saveUploadImageMeta } from '../../../services/workspace/w
 import { HOUR_OPTIONS } from '../../../lib/hourOptions'
 import {
   emptyWorkspace,
+  mergeWorkspaceImagesAfterSave,
   normalizeWorkspaceFromApi,
   PLAN_DURATIONS,
   SPACE_TAGS,
@@ -69,6 +72,8 @@ export function CoworkingSpaceDetailPage() {
   const [indexFlag, setIndexFlag] = useState(true)
   const [indexVirtualFlag, setIndexVirtualFlag] = useState(true)
   const [detailTab, setDetailTab] = useState<'coworking' | 'virtual'>('coworking')
+  const [galleryDragFrom, setGalleryDragFrom] = useState<number | null>(null)
+  const [galleryDragOver, setGalleryDragOver] = useState<number | null>(null)
 
   const detailQ = useQuery({
     queryKey: ['workspace', workspaceId],
@@ -156,11 +161,19 @@ export function CoworkingSpaceDetailPage() {
       const id = saved?.id ?? ws?.id
       toast.success('Workspace saved')
       qc.invalidateQueries({ queryKey: ['coworking-spaces'] })
+      if (id && !isNew) {
+        qc.invalidateQueries({ queryKey: ['workspace', id] })
+      }
       if (isNew && id) {
         navigate(`/layout/coworking/spaces/detail/${id}`, { replace: true })
       }
       if (saved) {
-        setWs(normalizeWorkspaceFromApi(JSON.parse(JSON.stringify(saved))))
+        setWs((prev) =>
+          mergeWorkspaceImagesAfterSave(
+            prev,
+            normalizeWorkspaceFromApi(JSON.parse(JSON.stringify(saved))),
+          ) as Ws,
+        )
       }
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Save failed'),
@@ -276,6 +289,19 @@ export function CoworkingSpaceDetailPage() {
       const tmp = list[idx]
       list[idx] = list[j]
       list[j] = tmp
+      return { ...w, images: normalizeImageOrders(list) }
+    })
+  }
+
+  /** Drag-and-drop reorder (same semantics as Angular CDK `moveItemInArray`). */
+  function reorderGallery(fromIndex: number, toIndex: number) {
+    setWs((w) => {
+      if (!w) return w
+      const list = [...(w.images ?? [])]
+      if (fromIndex === toIndex) return w
+      if (fromIndex < 0 || fromIndex >= list.length || toIndex < 0 || toIndex >= list.length) return w
+      const [removed] = list.splice(fromIndex, 1)
+      list.splice(toIndex, 0, removed)
       return { ...w, images: normalizeImageOrders(list) }
     })
   }
@@ -413,20 +439,19 @@ export function CoworkingSpaceDetailPage() {
       toast.error('Enable the space before preview.')
       return
     }
-    const slug = (ws.slug ?? '').toLowerCase().trim()
-    const c = (ws.country_dbname ?? '').toLowerCase()
-    const base = env.websitePath
-    const baseCountry = env.websitePathCountry
-    if (c === 'india' || !c) {
-      if (base) window.open(`${base.replace(/\/$/, '')}/${slug}`, '_blank', 'noopener,noreferrer')
-      else toast.error('Set VITE_WEBSITE_URL in .env')
-    } else if (baseCountry) {
-      window.open(
-        `${baseCountry.replace(/\/$/, '')}/${c}/coworking-details/${slug}`,
-        '_blank',
-        'noopener,noreferrer',
-      )
+    const url = buildCoworkingListingPreviewUrl({
+      slug: ws.slug,
+      country_dbname: ws.country_dbname,
+    })
+    if (!url) {
+      if (!(ws.slug ?? '').trim()) toast.error('Add a slug before preview.')
+      else
+        toast.error(
+          'Set VITE_WEBSITE_URL (e.g. https://spacehaat.com). For non-India spaces, set VITE_WEBSITE_URL_COUNTRY if needed.',
+        )
+      return
     }
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const states = statesQ.data?.data ?? []
@@ -1198,15 +1223,23 @@ export function CoworkingSpaceDetailPage() {
         {section('Gallery', (
           <div className="space-y-4">
             <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={onGalleryPick} />
-            <Button type="button" variant="secondary" onClick={() => fileRef.current?.click()}>
-              Upload images
-            </Button>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+              <Button type="button" variant="secondary" onClick={() => fileRef.current?.click()}>
+                Upload images
+              </Button>
+              {(ws.images ?? []).length > 0 ? (
+                <p className="text-xs text-slate-500">Drag the grip handle to set image priority (first = main).</p>
+              ) : null}
+            </div>
             {(ws.images ?? []).length === 0 ? (
               <p className="text-sm text-slate-500">No images yet.</p>
             ) : (
               <Table className="shadow-none ring-0">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/90">
+                    <Th className="w-12">
+                      <span className="sr-only">Reorder</span>
+                    </Th>
                     <Th>Priority</Th>
                     <Th>Preview</Th>
                     <Th>Name</Th>
@@ -1216,7 +1249,46 @@ export function CoworkingSpaceDetailPage() {
                 </thead>
                 <tbody>
                   {(ws.images ?? []).map((slot: any, i: number) => (
-                    <Tr key={i}>
+                    <Tr
+                      key={slot?.image?.id ? String(slot.image.id) : `gallery-${i}`}
+                      className={cn(
+                        galleryDragOver === i && galleryDragFrom !== null && galleryDragFrom !== i && 'bg-violet-50/90 ring-1 ring-inset ring-violet-300',
+                        galleryDragFrom === i && 'opacity-70',
+                      )}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'move'
+                        if (galleryDragFrom !== null) setGalleryDragOver(i)
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        const from = Number(e.dataTransfer.getData('text/plain'))
+                        if (Number.isNaN(from)) return
+                        reorderGallery(from, i)
+                        setGalleryDragFrom(null)
+                        setGalleryDragOver(null)
+                      }}
+                    >
+                      <Td className="w-12 align-middle">
+                        <button
+                          type="button"
+                          draggable
+                          aria-label={`Drag to reorder image ${i + 1}`}
+                          title="Drag to reorder"
+                          className="cursor-grab rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 active:cursor-grabbing"
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', String(i))
+                            e.dataTransfer.effectAllowed = 'move'
+                            setGalleryDragFrom(i)
+                          }}
+                          onDragEnd={() => {
+                            setGalleryDragFrom(null)
+                            setGalleryDragOver(null)
+                          }}
+                        >
+                          <Bars3Icon className="h-5 w-5 shrink-0" aria-hidden />
+                        </button>
+                      </Td>
                       <Td className="whitespace-nowrap font-mono text-slate-800">{slot.order ?? i + 1}</Td>
                       <Td>
                         {slot.image?.s3_link ? (

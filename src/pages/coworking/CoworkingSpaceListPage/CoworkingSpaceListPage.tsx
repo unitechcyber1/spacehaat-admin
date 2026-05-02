@@ -8,9 +8,9 @@ import { Input } from '../../../components/Input'
 import { PageShell } from '../../../components/PageShell'
 import { SearchableCitySelect } from '../../../components/SearchableCitySelect'
 import { Table, Td, Th, Tr } from '../../../components/Table'
+import { buildCoworkingListingPreviewUrl } from '../../../lib/coworkingPreviewUrl'
 import { cn } from '../../../lib/ui'
-import { env } from '../../../lib/env'
-import { workspaceCityLabel, workspaceRowId } from '../../../lib/workspaceDisplay'
+import { workspaceCityLabel, workspaceMicroLocationLabel, workspaceRowId } from '../../../lib/workspaceDisplay'
 import { useDebouncedValue } from '../../../lib/useDebouncedValue'
 import {
   changeWorkspaceStatus,
@@ -34,12 +34,19 @@ function statusClass(status: string | undefined) {
   return 'text-slate-600'
 }
 
-type SortCol = 'name' | 'city' | 'status' | ''
+type SortCol = 'name' | 'city' | 'location' | 'status' | ''
 
 const filterSelectClass =
   'w-full rounded-xl border-0 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200/90 transition focus:outline-none focus:ring-2 focus:ring-violet-500'
 
 const filterLabelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500'
+
+function openCoworkingEditInNewTab(workspaceId: string) {
+  if (!workspaceId) return
+  const prefix = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
+  const path = `${prefix}/layout/coworking/spaces/detail/${workspaceId}`.replace(/\/+/g, '/')
+  window.open(new URL(path, window.location.origin).href, '_blank', 'noopener,noreferrer')
+}
 
 export function CoworkingSpaceListPage() {
   const qc = useQueryClient()
@@ -150,25 +157,16 @@ export function CoworkingSpaceListPage() {
       toast.error('Preview is only available for enabled spaces.')
       return
     }
-    const slug = (w.slug ?? '').toLowerCase().trim()
-    if (!slug) {
-      toast.error('Missing slug.')
+    const url = buildCoworkingListingPreviewUrl({ slug: w.slug, country_dbname: w.country_dbname })
+    if (!url) {
+      if (!(w.slug ?? '').trim()) toast.error('Missing slug.')
+      else
+        toast.error(
+          'Set VITE_WEBSITE_URL to your public site (e.g. https://spacehaat.com) for preview. For non-India spaces, also set VITE_WEBSITE_URL_COUNTRY if needed.',
+        )
       return
     }
-    const c = (w.country_dbname ?? '').toLowerCase()
-    const base = env.websitePath
-    const baseCountry = env.websitePathCountry
-    if (!base && !baseCountry) {
-      toast.error('Set VITE_WEBSITE_URL (and optional VITE_WEBSITE_URL_COUNTRY) in .env for preview.')
-      return
-    }
-    if (c === 'india' || !c) {
-      if (base) window.open(`${base.replace(/\/$/, '')}/${slug}`, '_blank', 'noopener,noreferrer')
-      else toast.error('Set VITE_WEBSITE_URL for India preview.')
-    } else if (baseCountry) {
-      const url = `${baseCountry.replace(/\/$/, '')}/${c}/coworking-details/${slug}`
-      window.open(url, '_blank', 'noopener,noreferrer')
-    }
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const data = listQ.data
@@ -370,6 +368,15 @@ export function CoworkingSpaceListPage() {
                 <button
                   type="button"
                   className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
+                  onClick={() => toggleSort('location')}
+                >
+                  Micro-location {sortIndicator('location')}
+                </button>
+              </Th>
+              <Th>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
                   onClick={() => toggleSort('status')}
                 >
                   Status {sortIndicator('status')}
@@ -383,7 +390,7 @@ export function CoworkingSpaceListPage() {
           <tbody>
             {!listQ.isLoading && rows.length === 0 ? (
               <Tr>
-                <Td colSpan={6} className="py-16 text-center text-sm text-slate-500">
+                <Td colSpan={7} className="py-16 text-center text-sm text-slate-500">
                   No workspaces match these filters. Try another name, city, micro-location, or status.
                 </Td>
               </Tr>
@@ -392,11 +399,12 @@ export function CoworkingSpaceListPage() {
               <Tr key={workspaceRowId(w) || w.name}>
                 <Td className="font-medium text-slate-900">{w.name ?? '—'}</Td>
                 <Td>{workspaceCityLabel(w)}</Td>
+                <Td className="max-w-[220px] text-sm text-slate-700">{workspaceMicroLocationLabel(w)}</Td>
                 <Td className={cn('font-medium', statusClass(w.status))}>{statusLabel(w.status)}</Td>
                 <Td>
                   <Button
                     variant="ghost"
-                    onClick={() => navigate(`/layout/coworking/spaces/detail/${workspaceRowId(w)}`)}
+                    onClick={() => openCoworkingEditInNewTab(workspaceRowId(w))}
                   >
                     Edit
                   </Button>

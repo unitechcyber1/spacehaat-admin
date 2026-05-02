@@ -16,13 +16,23 @@ export function workspaceCityLabel(w: WorkspaceListItem): string {
 }
 
 /**
- * Micro-location line (matches legacy “Location” column): `micro_location.name`, then fallbacks.
+ * Micro-location line: populated microlocation(s), then `micro_location_string`, then venue `location.name`.
  */
 export function workspaceMicroLocationLabel(w: WorkspaceListItem): string {
   const loc = w.location
   if (!loc) return '—'
   const ml = loc.micro_location
   if (ml != null) {
+    if (Array.isArray(ml)) {
+      const parts = ml
+        .map((x) => {
+          if (typeof x === 'string') return x.trim()
+          if (x && typeof x === 'object' && 'name' in x) return String((x as { name?: string }).name ?? '').trim()
+          return ''
+        })
+        .filter(Boolean)
+      if (parts.length) return parts.join(', ')
+    }
     if (typeof ml === 'string' && ml.trim()) return ml.trim()
     if (typeof ml === 'object' && ml !== null) {
       const n = (ml as { name?: string }).name

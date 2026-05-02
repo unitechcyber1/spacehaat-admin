@@ -1,6 +1,6 @@
 export const env = {
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL as string | undefined,
-  /** Public site base for India listings (preview). */
+  /** Public marketing site origin for India (no trailing path). Coworking preview: `{websitePath}/coworking/{slug}`. */
   websitePath: (import.meta.env.VITE_WEBSITE_URL as string | undefined) ?? '',
   /** Multi-country site base, e.g. `{base}/{country}/coworking-details/{slug}`. */
   websitePathCountry: (import.meta.env.VITE_WEBSITE_URL_COUNTRY as string | undefined) ?? '',

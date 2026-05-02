@@ -19,7 +19,11 @@ export type WorkspaceListItem = {
   location?: {
     name?: string
     city?: { name?: string; id?: string } | string
-    micro_location?: { name?: string; id?: string } | string
+    /** Single microlocation, string id/slug, or list (populate from API). */
+    micro_location?:
+      | { name?: string; id?: string }
+      | string
+      | Array<{ name?: string; id?: string } | string>
     micro_location_string?: string
     country?: string
   }

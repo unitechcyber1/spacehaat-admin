@@ -220,3 +220,66 @@ export function normalizeWorkspaceFromApi(data: Record<string, unknown>): Record
   }
   return w
 }
+
+function imageSlotId(image: unknown): string | null {
+  if (image == null) return null
+  if (typeof image === 'string') return image
+  if (typeof image === 'object') {
+    const o = image as { id?: unknown; _id?: unknown }
+    const id = o.id ?? o._id
+    if (id != null && id !== '') return String(id)
+  }
+  return null
+}
+
+function imageHasPreviewUrl(image: unknown): boolean {
+  return (
+    typeof image === 'object' &&
+    image !== null &&
+    typeof (image as { s3_link?: string }).s3_link === 'string' &&
+    !!(image as { s3_link: string }).s3_link
+  )
+}
+
+/** Keeps 1-based order indices contiguous after reordering. */
+export function normalizeGalleryOrders(images: { order?: number; image?: unknown }[]) {
+  return images.map((item, idx) => ({ ...item, order: idx + 1 }))
+}
+
+/**
+ * Save responses often return gallery rows as `{ order, image: id }` without `s3_link`.
+ * Merge prior client state so thumbnails stay visible without a full refetch.
+ */
+export function mergeWorkspaceImagesAfterSave(
+  previous: Record<string, unknown> | null,
+  savedNormalized: Record<string, unknown>,
+): Record<string, unknown> {
+  const prevImages = (previous?.images ?? []) as { order?: number; image?: unknown }[]
+  const nextImages = (savedNormalized.images ?? []) as { order?: number; image?: unknown }[]
+
+  const idToFull = new Map<string, unknown>()
+  for (const row of prevImages) {
+    const id = imageSlotId(row.image)
+    if (id) idToFull.set(id, row.image)
+  }
+
+  if (!nextImages.length && prevImages.length) {
+    return { ...savedNormalized, images: normalizeGalleryOrders(prevImages) }
+  }
+
+  const merged = nextImages.map((row, i) => {
+    const raw = row.image
+    const id = imageSlotId(raw)
+    const fromPrev = id ? idToFull.get(id) : undefined
+
+    let image: unknown = raw
+    if (imageHasPreviewUrl(raw)) image = raw
+    else if (fromPrev != null && imageHasPreviewUrl(fromPrev)) image = fromPrev
+    else if (fromPrev != null) image = fromPrev
+    else image = raw
+
+    return { order: row.order ?? i + 1, image }
+  })
+
+  return { ...savedNormalized, images: normalizeGalleryOrders(merged) }
+}
