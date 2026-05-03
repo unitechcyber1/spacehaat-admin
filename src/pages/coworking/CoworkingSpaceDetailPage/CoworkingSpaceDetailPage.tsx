@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Button } from '../../../components/Button'
 import { Input } from '../../../components/Input'
+import { MicroLocationPicker } from '../../../components/MicroLocationPicker'
 import { PageShell } from '../../../components/PageShell'
 import { RichTextEditor } from '../../../components/RichTextEditor'
 import { Table, Td, Th, Tr } from '../../../components/Table'
@@ -23,7 +24,6 @@ import { getBrands } from '../../../services/brand/brand.service'
 import { getCountries } from '../../../services/locations/country.service'
 import { getStatesByCountry } from '../../../services/locations/state.service'
 import { getCitiesByCountryOnly, getCitiesByState } from '../../../services/locations/city.service'
-import { getMicroLocationsByCity } from '../../../services/locations/microLocation.service'
 import { uploadAdminFile } from '../../../services/upload/upload.service'
 import { deleteS3File, saveUploadImageMeta } from '../../../services/workspace/workspace.service'
 import { HOUR_OPTIONS } from '../../../lib/hourOptions'
@@ -119,11 +119,6 @@ export function CoworkingSpaceDetailPage() {
   })
 
   const cityId = loc.city as string
-  const microQ = useQuery({
-    queryKey: ['micro', cityId],
-    queryFn: () => getMicroLocationsByCity(cityId),
-    enabled: !!cityId,
-  })
 
   useEffect(() => {
     if (!isNew && detailQ.data?.data) {
@@ -456,7 +451,12 @@ export function CoworkingSpaceDetailPage() {
 
   const states = statesQ.data?.data ?? []
   const cities = citiesQ.data?.data ?? []
-  const micros = microQ.data?.data ?? []
+  const microId =
+    typeof loc.micro_location === 'string'
+      ? loc.micro_location
+      : loc.micro_location && typeof loc.micro_location === 'object' && 'id' in loc.micro_location
+        ? String((loc.micro_location as { id: unknown }).id ?? '')
+        : ''
 
   if (!isNew && detailQ.isLoading) {
     return (
@@ -728,19 +728,15 @@ export function CoworkingSpaceDetailPage() {
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-700">Micro-location</label>
-              <select
-                className="mt-1 w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200"
-                value={(loc.micro_location as string) ?? ''}
-                onChange={(e) => setLoc({ micro_location: e.target.value })}
-                disabled={!cityId}
-              >
-                <option value="">Select…</option>
-                {micros.map((m: { id?: string; name?: string }) => (
-                  <option key={m.id ?? m.name} value={m.id ?? m.name}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1">
+                <MicroLocationPicker
+                  cityId={cityId}
+                  value={microId}
+                  onChange={(id) => setLoc({ micro_location: id })}
+                  disabled={!cityId}
+                  placeholder="Select micro-location…"
+                />
+              </div>
             </div>
             <div className="lg:col-span-2">
               <label className="text-xs font-semibold text-slate-700">Location name</label>

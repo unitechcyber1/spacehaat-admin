@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Button } from '../../components/Button'
+import { MicroLocationPicker } from '../../components/MicroLocationPicker'
 import { Input } from '../../components/Input'
 import { PageShell } from '../../components/PageShell'
 import { RichTextEditor } from '../../components/RichTextEditor/RichTextEditor'
@@ -14,7 +15,6 @@ import type { AmenityRecord } from '../../services/amenity/types'
 import { getBuilders } from '../../services/builder/builder.service'
 import { getCountries } from '../../services/locations/country.service'
 import { getCitiesByCountryOnly, getCitiesByState } from '../../services/locations/city.service'
-import { getMicroLocationsByCity } from '../../services/locations/microLocation.service'
 import { getStatesByCountry } from '../../services/locations/state.service'
 import {
   getOfficeSpaceById,
@@ -108,12 +108,6 @@ export function OfficeSpaceFormPage() {
     queryKey: ['cities-office', stateId, countryId],
     queryFn: () => (stateId ? getCitiesByState(stateId) : getCitiesByCountryOnly(countryId!)),
     enabled: !!countryId,
-  })
-
-  const microQ = useQuery({
-    queryKey: ['micro', cityId, 'office'],
-    queryFn: () => getMicroLocationsByCity(cityId!),
-    enabled: !!cityId,
   })
 
   const buildingsQ = useQuery({
@@ -918,22 +912,14 @@ export function OfficeSpaceFormPage() {
               </div>
               <div>
                 <label className={labelClass}>Micro-locations</label>
-                <select
+                <MicroLocationPicker
                   multiple
-                  className={cn(inputClass, 'min-h-[120px]')}
+                  cityId={cityId}
                   value={microIds}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions).map((o) => o.value)
-                    setMicroIds(selected)
-                  }}
-                >
-                  {(microQ.data?.data ?? []).map((m: AnyRec) => (
-                    <option key={String(m.id ?? m._id)} value={String(m.id ?? m._id)}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-slate-500">Hold Cmd/Ctrl to select multiple.</p>
+                  onChange={setMicroIds}
+                  disabled={!cityId || citiesQ.isLoading}
+                  placeholder="Select micro-locations…"
+                />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
