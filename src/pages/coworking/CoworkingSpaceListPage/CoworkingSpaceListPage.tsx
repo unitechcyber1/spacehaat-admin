@@ -1,6 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import {
+  CheckCircleIcon,
+  ClockIcon,
+  EyeIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  XCircleIcon,
+} from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { Button } from '../../../components/Button'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
@@ -24,6 +32,7 @@ function statusLabel(status: string | undefined) {
   if (status === 'approve') return 'ENABLED'
   if (status === 'reject') return 'DISABLED'
   if (status === 'pending') return 'PENDING'
+  if (status === 'inprogress') return 'IN PROGRESS'
   return status ?? '—'
 }
 
@@ -31,7 +40,16 @@ function statusClass(status: string | undefined) {
   if (status === 'approve') return 'text-emerald-700'
   if (status === 'reject') return 'text-rose-700'
   if (status === 'pending') return 'text-amber-700'
+  if (status === 'inprogress') return 'text-sky-700'
   return 'text-slate-600'
+}
+
+function statusPillClass(status: string | undefined) {
+  if (status === 'approve') return 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+  if (status === 'reject') return 'bg-rose-50 text-rose-700 ring-rose-200'
+  if (status === 'pending') return 'bg-amber-50 text-amber-800 ring-amber-200'
+  if (status === 'inprogress') return 'bg-sky-50 text-sky-700 ring-sky-200'
+  return 'bg-slate-50 text-slate-700 ring-slate-200'
 }
 
 type SortCol = 'name' | 'city' | 'location' | 'status' | ''
@@ -56,7 +74,9 @@ export function CoworkingSpaceListPage() {
   const debouncedName = useDebouncedValue(nameInput, 1000)
   const debouncedLocation = useDebouncedValue(locationInput, 500)
   const [city, setCity] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approve' | 'reject'>('all')
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'pending' | 'approve' | 'reject' | 'inprogress'
+  >('all')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [sortBy, setSortBy] = useState<SortCol>('')
@@ -111,6 +131,7 @@ export function CoworkingSpaceListPage() {
     | { type: 'delete'; id: string; name: string }
     | { type: 'enable'; ws: WorkspaceListItem }
     | { type: 'disable'; ws: WorkspaceListItem }
+    | { type: 'inprogress'; ws: WorkspaceListItem }
   >(null)
 
   const delMut = useMutation({
@@ -127,7 +148,7 @@ export function CoworkingSpaceListPage() {
     mutationFn: ({ ws, next }: { ws: WorkspaceListItem; next: string }) =>
       changeWorkspaceStatus({ ...ws, status: next } as WorkspaceListItem),
     onSuccess: (_, v) => {
-      toast.success(v.next === 'approve' ? 'Enabled' : 'Disabled')
+      toast.success(v.next === 'approve' ? 'Enabled' : v.next === 'reject' ? 'Disabled' : 'Updated')
       setConfirm(null)
       qc.invalidateQueries({ queryKey: ['coworking-spaces'] })
     },
@@ -150,6 +171,50 @@ export function CoworkingSpaceListPage() {
   function sortIndicator(col: SortCol) {
     if (sortBy !== col) return '↕'
     return orderBy === '-1' ? '↓' : '↑'
+  }
+
+  function iconButtonClass(tone: 'slate' | 'emerald' | 'amber' | 'sky' | 'rose' = 'slate') {
+    const toneClass =
+      tone === 'emerald'
+        ? 'text-emerald-700 hover:bg-emerald-50 hover:text-emerald-900'
+        : tone === 'amber'
+          ? 'text-amber-700 hover:bg-amber-50 hover:text-amber-900'
+          : tone === 'sky'
+            ? 'text-sky-700 hover:bg-sky-50 hover:text-sky-900'
+            : tone === 'rose'
+              ? 'text-rose-700 hover:bg-rose-50 hover:text-rose-900'
+              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+
+    return cn(
+      'inline-flex h-9 w-9 items-center justify-center rounded-lg ring-1 ring-inset ring-slate-200/80 transition',
+      'focus:outline-none focus:ring-2 focus:ring-violet-500',
+      toneClass,
+    )
+  }
+
+  function IconTooltip({
+    label,
+    children,
+  }: {
+    label: string
+    children: React.ReactNode
+  }) {
+    return (
+      <span className="group relative inline-flex">
+        {children}
+        <span
+          role="tooltip"
+          className={cn(
+            'pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap',
+            'rounded-lg bg-slate-900 px-2 py-1 text-xs font-medium text-white shadow-lg',
+            'opacity-0 transition-opacity duration-150',
+            'group-hover:opacity-100 group-focus-within:opacity-100',
+          )}
+        >
+          {label}
+        </span>
+      </span>
+    )
   }
 
   function onPreview(w: WorkspaceListItem) {
@@ -275,6 +340,7 @@ export function CoworkingSpaceListPage() {
                 >
                   <option value="all">All statuses</option>
                   <option value="pending">Pending</option>
+                  <option value="inprogress">In progress</option>
                   <option value="approve">Enabled</option>
                   <option value="reject">Disabled</option>
                 </select>
@@ -343,10 +409,10 @@ export function CoworkingSpaceListPage() {
           </div>
         </div>
 
-        <Table className="mt-5">
+        <Table className="mt-5 overflow-hidden rounded-2xl ring-1 ring-slate-200/70">
           <thead className="bg-gradient-to-r from-slate-50 to-violet-50/40">
             <tr>
-              <Th>
+              <Th className="w-[28%]">
                 <button
                   type="button"
                   className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
@@ -355,7 +421,7 @@ export function CoworkingSpaceListPage() {
                   Name {sortIndicator('name')}
                 </button>
               </Th>
-              <Th>
+              <Th className="w-[14%]">
                 <button
                   type="button"
                   className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
@@ -364,7 +430,7 @@ export function CoworkingSpaceListPage() {
                   City {sortIndicator('city')}
                 </button>
               </Th>
-              <Th>
+              <Th className="w-[22%]">
                 <button
                   type="button"
                   className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
@@ -373,7 +439,7 @@ export function CoworkingSpaceListPage() {
                   Micro-location {sortIndicator('location')}
                 </button>
               </Th>
-              <Th>
+              <Th className="w-[14%]">
                 <button
                   type="button"
                   className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
@@ -382,9 +448,9 @@ export function CoworkingSpaceListPage() {
                   Status {sortIndicator('status')}
                 </button>
               </Th>
-              <Th>Edit</Th>
-              <Th>Preview</Th>
-              <Th>Actions</Th>
+              <Th className="w-[8%] text-center">Edit</Th>
+              <Th className="w-[8%] text-center">Preview</Th>
+              <Th className="w-[16%] text-center">Actions</Th>
             </tr>
           </thead>
           <tbody>
@@ -397,40 +463,99 @@ export function CoworkingSpaceListPage() {
             ) : null}
             {rows.map((w) => (
               <Tr key={workspaceRowId(w) || w.name}>
-                <Td className="font-medium text-slate-900">{w.name ?? '—'}</Td>
-                <Td>{workspaceCityLabel(w)}</Td>
-                <Td className="max-w-[220px] text-sm text-slate-700">{workspaceMicroLocationLabel(w)}</Td>
-                <Td className={cn('font-medium', statusClass(w.status))}>{statusLabel(w.status)}</Td>
-                <Td>
-                  <Button
-                    variant="ghost"
-                    onClick={() => openCoworkingEditInNewTab(workspaceRowId(w))}
+                <Td className="align-middle">
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold text-slate-900">{w.name ?? '—'}</div>
+                    {w.slug ? (
+                      <div className="truncate text-xs text-slate-500">/{w.slug}</div>
+                    ) : null}
+                  </div>
+                </Td>
+                <Td className="align-middle">
+                  <span className="truncate text-sm text-slate-700">{workspaceCityLabel(w)}</span>
+                </Td>
+                <Td className="align-middle">
+                  <span className="line-clamp-2 text-sm text-slate-700">{workspaceMicroLocationLabel(w)}</span>
+                </Td>
+                <Td className="align-middle">
+                  <span
+                    className={cn(
+                      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset whitespace-nowrap',
+                      statusPillClass(w.status),
+                      statusClass(w.status),
+                    )}
                   >
-                    Edit
-                  </Button>
+                    {statusLabel(w.status)}
+                  </span>
                 </Td>
-                <Td>
-                  <Button variant="ghost" onClick={() => onPreview(w)}>
-                    Preview
-                  </Button>
-                </Td>
-                <Td>
-                  <div className="flex flex-wrap gap-1">
-                    <Button variant="ghost" className="text-emerald-700" onClick={() => setConfirm({ type: 'enable', ws: w })}>
-                      Enable
-                    </Button>
-                    <Button variant="ghost" className="text-amber-700" onClick={() => setConfirm({ type: 'disable', ws: w })}>
-                      Disable
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="text-rose-700"
-                      onClick={() =>
-                        setConfirm({ type: 'delete', id: workspaceRowId(w), name: w.name ?? '' })
-                      }
+                <Td className="align-middle text-center">
+                  <IconTooltip label="Edit">
+                    <button
+                      type="button"
+                      className={iconButtonClass('slate')}
+                      onClick={() => openCoworkingEditInNewTab(workspaceRowId(w))}
+                      aria-label="Edit workspace"
                     >
-                      Delete
-                    </Button>
+                      <PencilSquareIcon className="h-5 w-5" aria-hidden />
+                    </button>
+                  </IconTooltip>
+                </Td>
+                <Td className="align-middle text-center">
+                  <IconTooltip label={w.status === 'approve' ? 'Preview' : 'Preview (enabled only)'}>
+                    <button
+                      type="button"
+                      className={iconButtonClass(w.status === 'approve' ? 'slate' : 'amber')}
+                      onClick={() => onPreview(w)}
+                      aria-label="Preview workspace"
+                    >
+                      <EyeIcon className="h-5 w-5" aria-hidden />
+                    </button>
+                  </IconTooltip>
+                </Td>
+                <Td className="align-middle">
+                  <div className="flex items-center justify-center gap-2">
+                    <IconTooltip label="Enable">
+                      <button
+                        type="button"
+                        className={iconButtonClass('emerald')}
+                        onClick={() => setConfirm({ type: 'enable', ws: w })}
+                        aria-label="Enable workspace"
+                      >
+                        <CheckCircleIcon className="h-5 w-5" aria-hidden />
+                      </button>
+                    </IconTooltip>
+                    <IconTooltip label="In progress">
+                      <button
+                        type="button"
+                        className={iconButtonClass('sky')}
+                        onClick={() => setConfirm({ type: 'inprogress', ws: w })}
+                        aria-label="Mark workspace in progress"
+                      >
+                        <ClockIcon className="h-5 w-5" aria-hidden />
+                      </button>
+                    </IconTooltip>
+                    <IconTooltip label="Disable">
+                      <button
+                        type="button"
+                        className={iconButtonClass('amber')}
+                        onClick={() => setConfirm({ type: 'disable', ws: w })}
+                        aria-label="Disable workspace"
+                      >
+                        <XCircleIcon className="h-5 w-5" aria-hidden />
+                      </button>
+                    </IconTooltip>
+                    <IconTooltip label="Delete">
+                      <button
+                        type="button"
+                        className={iconButtonClass('rose')}
+                        onClick={() =>
+                          setConfirm({ type: 'delete', id: workspaceRowId(w), name: w.name ?? '' })
+                        }
+                        aria-label="Delete workspace"
+                      >
+                        <TrashIcon className="h-5 w-5" aria-hidden />
+                      </button>
+                    </IconTooltip>
                   </div>
                 </Td>
               </Tr>
@@ -469,6 +594,17 @@ export function CoworkingSpaceListPage() {
         onCancel={() => setConfirm(null)}
         onConfirm={() =>
           confirm?.type === 'disable' && statusMut.mutate({ ws: confirm.ws, next: 'reject' })
+        }
+      />
+
+      <ConfirmDialog
+        open={confirm?.type === 'inprogress'}
+        title="Mark workspace in progress?"
+        description={confirm?.type === 'inprogress' ? `Set “${confirm.ws.name}” to IN PROGRESS?` : undefined}
+        confirmText="Mark in progress"
+        onCancel={() => setConfirm(null)}
+        onConfirm={() =>
+          confirm?.type === 'inprogress' && statusMut.mutate({ ws: confirm.ws, next: 'inprogress' })
         }
       />
     </>
