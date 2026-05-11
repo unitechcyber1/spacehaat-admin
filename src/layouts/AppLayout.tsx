@@ -1,6 +1,8 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useCallback, useMemo, useState } from 'react'
+import { LayoutRouteGate } from '../components/LayoutRouteGate'
 import { logout } from '../services/auth/auth.service'
+import { isLayoutPathAllowed } from '../services/auth/routeAccess'
 import { Sidebar, type SidebarItem, SIDEBAR_COLLAPSED_KEY } from '../components/Sidebar'
 import { cn } from '../lib/ui'
 import {
@@ -11,6 +13,7 @@ import {
   CubeIcon,
   DocumentTextIcon,
   GlobeAltIcon,
+  HomeModernIcon,
   MapIcon,
   MapPinIcon,
   PhotoIcon,
@@ -27,6 +30,7 @@ const navItems: SidebarItem[] = [
   { to: '/layout/space-from-listing', label: 'Space listing', icon: Squares2X2Icon, section: 'Main' },
   { to: '/layout/enquiry', label: 'Enquiry', icon: TicketIcon, section: 'Main' },
   { to: '/layout/office-space', label: 'Office space', icon: BriefcaseIcon, section: 'Office space' },
+  { to: '/layout/pg', label: 'PG listings', icon: HomeModernIcon, section: 'Office space' },
   { to: '/layout/coworking/plans', label: 'Coworking plans', icon: Square3Stack3DIcon, section: 'Coworking' },
   { to: '/layout/coworking/spaces', label: 'Coworking spaces', icon: BuildingOffice2Icon, section: 'Coworking' },
   { to: '/layout/coworking/top-cities', label: 'Top coworking cities', icon: StarIcon, section: 'Coworking' },
@@ -36,7 +40,7 @@ const navItems: SidebarItem[] = [
   { to: '/layout/media', label: 'Media', icon: PhotoIcon, section: 'Content' },
   { to: '/layout/amenty', label: 'Amenities', icon: SparklesIcon, section: 'Content' },
   { to: '/layout/blog', label: 'Blog', icon: DocumentTextIcon, section: 'Content' },
-  { to: '/layout/cofynd-users', label: 'Users', icon: UserGroupIcon, section: 'Records' },
+  { to: '/layout/spacehaat-users', label: 'Spacehaat users', icon: UserGroupIcon, section: 'Records' },
   { to: '/layout/country', label: 'Countries', icon: GlobeAltIcon, section: 'Locations' },
   { to: '/layout/state', label: 'States', icon: MapIcon, section: 'Locations' },
   { to: '/layout/city', label: 'Cities', icon: MapPinIcon, section: 'Locations' },
@@ -54,7 +58,7 @@ function readSidebarCollapsed(): boolean {
 export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed)
-  const items = useMemo(() => navItems, [])
+  const items = useMemo(() => navItems.filter((item) => isLayoutPathAllowed(item.to)), [])
   const navigate = useNavigate()
 
   const persistCollapsed = useCallback((next: boolean) => {
@@ -120,7 +124,7 @@ export function AppLayout() {
             </div>
           </header>
           <div className="p-4">
-            <Outlet />
+            <LayoutRouteGate />
           </div>
         </main>
       </div>

@@ -23,6 +23,37 @@ export function getStoredUser(): any | null {
   }
 }
 
+/** Resolved profile object (login payload may nest under `user`). */
+export function getStoredUserInner(): any | null {
+  const u = getStoredUser()
+  if (!u) return null
+  return u.user ?? u
+}
+
+export function getStoredUserId(): string {
+  const inner = getStoredUserInner()
+  if (!inner) return ''
+  return String(inner._id ?? inner.id ?? '')
+}
+
+export function getStoredUserRole(): string {
+  const inner = getStoredUserInner()
+  if (!inner) return ''
+  return String(inner.role ?? '')
+}
+
+export function isStoredUserAdmin(): boolean {
+  return getStoredUserRole() === 'admin'
+}
+
+/** Mirrors Angular admin: admins always; sales when `create_lead` is true. */
+export function canCreateManualLead(): boolean {
+  const inner = getStoredUserInner()
+  if (!inner) return false
+  if (inner.role === 'admin') return true
+  return Boolean(inner.create_lead)
+}
+
 export function isAuthenticated() {
   const u = getStoredUser()
   const token = u?.token ?? u?.user?.token

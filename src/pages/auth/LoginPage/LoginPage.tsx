@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { login, isAuthenticated } from '../../../services/auth/auth.service'
+import { resolveSafeReturnUrl } from '../../../services/auth/routeAccess'
 import { cn } from '../../../lib/ui'
 
 function useQueryParam(name: string) {
@@ -12,7 +13,7 @@ function useQueryParam(name: string) {
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const returnUrl = useQueryParam('returnUrl') ?? '/layout/space-from-listing'
+  const returnUrlParam = useQueryParam('returnUrl')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,13 +23,13 @@ export function LoginPage() {
     mutationFn: () => login({ email, password }),
     onSuccess: () => {
       toast.success('Signed in')
-      navigate(returnUrl, { replace: true })
+      navigate(resolveSafeReturnUrl(returnUrlParam), { replace: true })
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Login failed'),
   })
 
   if (isAuthenticated()) {
-    return <Navigate to={returnUrl} replace />
+    return <Navigate to={resolveSafeReturnUrl(returnUrlParam)} replace />
   }
 
   return (

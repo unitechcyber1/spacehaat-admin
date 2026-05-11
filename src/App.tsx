@@ -1,4 +1,6 @@
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { isAuthenticated } from './services/auth/auth.service'
+import { getDefaultLayoutPathForUser } from './services/auth/routeAccess'
 import { AppLayout } from './layouts/AppLayout'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { NotFound } from './pages/NotFound'
@@ -23,10 +25,28 @@ import { AmenityListPage } from './pages/amenity/AmenityListPage'
 import { AmenityFormPage } from './pages/amenity/AmenityFormPage'
 import { OfficeSpaceListPage } from './pages/office-space/OfficeSpaceListPage'
 import { OfficeSpaceFormPage } from './pages/office-space/OfficeSpaceFormPage'
+import { PgFormPage } from './pages/pg/PgFormPage'
+import { PgListPage } from './pages/pg/PgListPage'
+import { EnquiryFormPage } from './pages/enquiry/EnquiryFormPage'
+import { EnquiryListPage } from './pages/enquiry/EnquiryListPage'
+import { SpacehaatUserAccessPage } from './pages/spacehaat-users/SpacehaatUserAccessPage'
+import { SpacehaatUserFormPage } from './pages/spacehaat-users/SpacehaatUserFormPage'
+import { SpacehaatUsersListPage } from './pages/spacehaat-users/SpacehaatUsersListPage'
+import { NoAccessPage } from './pages/NoAccessPage'
 
 function LegacyCoworkingDetailRedirect() {
   const { featuredSpaceId } = useParams<{ featuredSpaceId: string }>()
   return <Navigate to={`/layout/coworking/spaces/detail/${featuredSpaceId}`} replace />
+}
+
+function CofyndUserAccessRedirect() {
+  const { userId } = useParams<{ userId: string }>()
+  return <Navigate to={`/layout/spacehaat-users/access/${encodeURIComponent(userId ?? '')}`} replace />
+}
+
+function CofyndUserEditRedirect() {
+  const { userId } = useParams<{ userId: string }>()
+  return <Navigate to={`/layout/spacehaat-users/${encodeURIComponent(userId ?? '')}`} replace />
 }
 
 /** `/layout/amenity/detail/:id` → `/layout/amenty/detail/:id` (legacy path uses “amenty”). */
@@ -35,10 +55,19 @@ function AmenityDetailSpellingRedirect() {
   return <Navigate to={`/layout/amenty/detail/${amentyId}`} replace />
 }
 
+function RootIndexRedirect() {
+  if (!isAuthenticated()) return <Navigate to="/auth/login" replace />
+  return <Navigate to={getDefaultLayoutPathForUser()} replace />
+}
+
+function LayoutDefaultIndexRedirect() {
+  return <Navigate to={getDefaultLayoutPathForUser()} replace />
+}
+
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/layout/space-from-listing" replace />} />
+      <Route path="/" element={<RootIndexRedirect />} />
 
       <Route path="/auth/login" element={<LoginPage />} />
       <Route path="/auth/*" element={<PlaceholderPage title="Auth" />} />
@@ -51,15 +80,17 @@ function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="/layout/space-from-listing" replace />} />
+        <Route index element={<LayoutDefaultIndexRedirect />} />
+
+        <Route path="no-access" element={<NoAccessPage />} />
 
         <Route path="dashboard/*" element={<PlaceholderPage title="Dashboard" />} />
         <Route path="priority/workspace" element={<Navigate to="/layout/coworking/priority" replace />} />
         <Route path="priority/*" element={<PlaceholderPage title="Priority" />} />
 
-        <Route path="enquiry" element={<PlaceholderPage title="Enquiry" />} />
-        <Route path="enquiry/add" element={<PlaceholderPage title="Enquiry / Add" />} />
-        <Route path="enquiry/detail/:leadId" element={<PlaceholderPage title="Enquiry / Detail" />} />
+        <Route path="enquiry" element={<EnquiryListPage />} />
+        <Route path="enquiry/add" element={<EnquiryFormPage />} />
+        <Route path="enquiry/detail/:leadId" element={<EnquiryFormPage />} />
 
         <Route path="users-from-listing" element={<PlaceholderPage title="Users from listing" />} />
         <Route path="booking" element={<PlaceholderPage title="Booking" />} />
@@ -102,6 +133,10 @@ function App() {
         <Route path="office-space" element={<OfficeSpaceListPage />} />
         <Route path="office-space/detail/:officeSpaceId" element={<OfficeSpaceFormPage />} />
         <Route path="office-space/add" element={<OfficeSpaceFormPage />} />
+
+        <Route path="pg" element={<PgListPage />} />
+        <Route path="pg/new" element={<PgFormPage />} />
+        <Route path="pg/:pgId/edit" element={<PgFormPage />} />
 
         <Route path="builder" element={<PlaceholderPage title="Builder" />} />
         <Route path="builder/detail/:builderId" element={<PlaceholderPage title="Builder / Detail" />} />
@@ -170,10 +205,15 @@ function App() {
 
         <Route path="review" element={<PlaceholderPage title="Review" />} />
 
-        <Route path="cofynd-users" element={<PlaceholderPage title="Cofynd users" />} />
-        <Route path="cofynd-users/add" element={<PlaceholderPage title="Cofynd users / Add" />} />
-        <Route path="cofynd-users/access/:userId" element={<PlaceholderPage title="Cofynd users / Access" />} />
-        <Route path="cofynd-users/:userId" element={<PlaceholderPage title="Cofynd users / Edit" />} />
+        <Route path="spacehaat-users" element={<SpacehaatUsersListPage />} />
+        <Route path="spacehaat-users/add" element={<SpacehaatUserFormPage />} />
+        <Route path="spacehaat-users/access/:userId" element={<SpacehaatUserAccessPage />} />
+        <Route path="spacehaat-users/:userId" element={<SpacehaatUserFormPage />} />
+
+        <Route path="cofynd-users" element={<Navigate to="/layout/spacehaat-users" replace />} />
+        <Route path="cofynd-users/add" element={<Navigate to="/layout/spacehaat-users/add" replace />} />
+        <Route path="cofynd-users/access/:userId" element={<CofyndUserAccessRedirect />} />
+        <Route path="cofynd-users/:userId" element={<CofyndUserEditRedirect />} />
 
         <Route path="*" element={<NotFound />} />
       </Route>

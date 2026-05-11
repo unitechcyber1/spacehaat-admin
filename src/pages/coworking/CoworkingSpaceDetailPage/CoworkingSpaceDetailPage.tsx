@@ -214,9 +214,10 @@ export function CoworkingSpaceDetailPage() {
       }
       setWs((w) => {
         if (!w) return w
-        const imgs = [...(w.images ?? [])]
-        const start = imgs.length
-        slots.forEach((s, i) => imgs.push({ ...s, order: start + i + 1 }))
+        // New uploads go at the top of the stack; `normalizeImageOrders` renumbers order 1…n in sequence.
+        const existing = [...(w.images ?? [])]
+        const newRows = slots.map((s) => ({ image: s.image, order: 0 }))
+        const imgs = [...newRows, ...existing]
         return { ...w, images: normalizeImageOrders(imgs) }
       })
       toast.success('Images uploaded')
