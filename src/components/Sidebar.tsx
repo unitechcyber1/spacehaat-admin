@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
   BriefcaseIcon,
   BuildingOffice2Icon,
@@ -15,6 +15,7 @@ import {
   QueueListIcon,
   SparklesIcon,
   Square3Stack3DIcon,
+  HomeModernIcon,
   Squares2X2Icon,
   StarIcon,
   TicketIcon,
@@ -46,6 +47,7 @@ export type SidebarItem = {
     | typeof QueueListIcon
     | typeof PhotoIcon
     | typeof SparklesIcon
+    | typeof HomeModernIcon
   section?: string
 }
 
@@ -85,6 +87,8 @@ export function Sidebar({
       : internalCollapsed
     : false
 
+  const { pathname } = useLocation()
+
   function setCollapsed(next: boolean) {
     if (!enableCollapse) return
     if (controlled) {
@@ -110,6 +114,23 @@ export function Sidebar({
       map.set(key, [...(map.get(key) ?? []), it])
     }
     return Array.from(map.entries())
+  }, [items])
+
+  /** Avoid highlighting parent paths when a more specific nav item matches (e.g. `/layout/pg` vs `/layout/pg/priority`). */
+  const isItemActive = useMemo(() => {
+    const paths = items.map((it) => it.to.replace(/\/+$/, '') || '/')
+    return (to: string, pathname: string) => {
+      const base = to.replace(/\/+$/, '') || '/'
+      const current = pathname.replace(/\/+$/, '') || '/'
+      if (!current.startsWith(base)) return false
+      if (current === base) return true
+      const hasMoreSpecificMatch = items.some((_item, i) => {
+        const other = paths[i]
+        if (other === base || other.length <= base.length) return false
+        return other.startsWith(`${base}/`) && current.startsWith(other)
+      })
+      return !hasMoreSpecificMatch
+    }
   }, [items])
 
   return (
@@ -165,27 +186,29 @@ export function Sidebar({
             </div>
 
             <div className="space-y-1">
-              {sectionItems.map((item) => (
+              {sectionItems.map((item) => {
+                const active = isItemActive(item.to, pathname)
+                return (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   onClick={onNavigate}
-                  className={({ isActive }) =>
+                  className={() =>
                     cn(
                       'group flex items-center gap-3 rounded-2xl px-3 py-2 text-sm transition',
                       enableCollapse && collapsed && 'justify-center px-2',
-                      isActive
+                      active
                         ? 'bg-gradient-to-r from-violet-600 via-fuchsia-600 to-sky-600 text-white shadow-sm shadow-violet-600/15'
                         : 'text-slate-700 hover:bg-white/70 hover:ring-1 hover:ring-slate-200',
                     )
                   }
+                  aria-current={active ? 'page' : undefined}
                   title={enableCollapse && collapsed ? item.label : undefined}
                 >
                   <item.icon
                     className={cn(
                       'h-5 w-5 shrink-0',
-                      'text-slate-500 group-hover:text-slate-700',
-                      'group-aria-[current=page]:text-white',
+                      active ? 'text-white' : 'text-slate-500 group-hover:text-slate-700',
                     )}
                   />
                   <span
@@ -197,7 +220,8 @@ export function Sidebar({
                     {item.label}
                   </span>
                 </NavLink>
-              ))}
+                )
+              })}
             </div>
           </Fragment>
         ))}

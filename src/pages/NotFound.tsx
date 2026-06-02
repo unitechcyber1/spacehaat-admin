@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { getDefaultLayoutPathForUser } from '../services/auth/routeAccess'
 
 export function NotFound() {
   const location = useLocation()
@@ -10,7 +11,7 @@ export function NotFound() {
       </p>
       <div className="mt-4">
         <Link
-          to="/layout/space-from-listing"
+          to={getDefaultLayoutPathForUser()}
           className="inline-flex items-center rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
         >
           Go to dashboard

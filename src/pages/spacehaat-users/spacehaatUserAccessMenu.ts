@@ -3,12 +3,12 @@
  * Paths must match `App.tsx` layout routes where applicable.
  */
 export const SPACEHAAT_ACCESS_MENU: { path: string; title: string }[] = [
-  { path: '/layout/space-from-listing', title: 'Space listing' },
   { path: '/layout/enquiry', title: 'CRM' },
   { path: '/layout/users-from-listing', title: 'Users from listing' },
   { path: '/layout/spacehaat-users', title: 'Spacehaat users' },
   { path: '/layout/office-space', title: 'Office space' },
   { path: '/layout/pg', title: 'PG listings' },
+  { path: '/layout/pg/priority', title: 'PG priority' },
   { path: '/layout/coworking/plans', title: 'Coworking plans' },
   { path: '/layout/coworking/spaces', title: 'Coworking spaces' },
   { path: '/layout/coworking/top-cities', title: 'Top coworking cities' },

@@ -20,17 +20,16 @@ import {
   QueueListIcon,
   SparklesIcon,
   Square3Stack3DIcon,
-  Squares2X2Icon,
   StarIcon,
   TicketIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline'
 
 const navItems: SidebarItem[] = [
-  { to: '/layout/space-from-listing', label: 'Space listing', icon: Squares2X2Icon, section: 'Main' },
   { to: '/layout/enquiry', label: 'Enquiry', icon: TicketIcon, section: 'Main' },
   { to: '/layout/office-space', label: 'Office space', icon: BriefcaseIcon, section: 'Office space' },
-  { to: '/layout/pg', label: 'PG listings', icon: HomeModernIcon, section: 'Office space' },
+  { to: '/layout/pg', label: 'PG listings', icon: HomeModernIcon, section: 'PG' },
+  { to: '/layout/pg/priority', label: 'PG priority', icon: QueueListIcon, section: 'PG' },
   { to: '/layout/coworking/plans', label: 'Coworking plans', icon: Square3Stack3DIcon, section: 'Coworking' },
   { to: '/layout/coworking/spaces', label: 'Coworking spaces', icon: BuildingOffice2Icon, section: 'Coworking' },
   { to: '/layout/coworking/top-cities', label: 'Top coworking cities', icon: StarIcon, section: 'Coworking' },

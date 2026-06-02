@@ -3,9 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
-  EyeIcon,
+  CheckCircleIcon,
+  ClockIcon,
   PencilSquareIcon,
   TrashIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/outline'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -15,7 +17,7 @@ import { SearchableCitySelect } from '../../components/SearchableCitySelect'
 import { Table, Td, Th, Tr } from '../../components/Table'
 import { cn } from '../../lib/ui'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
-import { deletePg, getPgs } from '../../services/pg/pg.service'
+import { changePgStatus, deletePg, getPgs } from '../../services/pg/pg.service'
 import { getCities } from '../../services/locations/city.service'
 import { pgRowId } from './pgFormModel'
 
@@ -37,6 +39,13 @@ function fmtDate(iso: string | undefined): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function fmtDateShort(iso: string | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 /** Normalize API date fields (ISO strings, unix seconds/ms, Mongo extended JSON `$date`). */
@@ -87,6 +96,38 @@ function localityLabel(pg: PgRow): string {
   return '—'
 }
 
+function pgStatusRaw(pg: PgRow): string {
+  if (typeof pg.status === 'string') return pg.status
+  if (pg.status != null) return String(pg.status)
+  return ''
+}
+
+function statusLabel(status: string | undefined) {
+  if (status === 'approve') return 'ENABLED'
+  if (status === 'reject') return 'DISABLED'
+  if (status === 'pending') return 'PENDING'
+  if (status === 'inprogress') return 'IN PROGRESS'
+  if (status?.toLowerCase() === 'active') return 'ACTIVE'
+  if (status?.toLowerCase() === 'inactive') return 'INACTIVE'
+  return status || '—'
+}
+
+function statusClass(status: string | undefined) {
+  if (status === 'approve') return 'text-emerald-700'
+  if (status === 'reject') return 'text-rose-700'
+  if (status === 'pending') return 'text-amber-700'
+  if (status === 'inprogress') return 'text-sky-700'
+  return 'text-slate-600'
+}
+
+function statusPillClass(status: string | undefined) {
+  if (status === 'approve') return 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+  if (status === 'reject') return 'bg-rose-50 text-rose-700 ring-rose-200'
+  if (status === 'pending') return 'bg-amber-50 text-amber-800 ring-amber-200'
+  if (status === 'inprogress') return 'bg-sky-50 text-sky-700 ring-sky-200'
+  return 'bg-slate-50 text-slate-700 ring-slate-200'
+}
+
 function IconTooltip({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <span className="group relative inline-flex">
@@ -106,11 +147,22 @@ function IconTooltip({ label, children }: { label: string; children: React.React
   )
 }
 
-function iconBtnNeutral() {
+function iconButtonClass(tone: 'slate' | 'emerald' | 'amber' | 'sky' | 'rose' = 'slate') {
+  const toneClass =
+    tone === 'emerald'
+      ? 'text-emerald-700 hover:bg-emerald-50 hover:text-emerald-900'
+      : tone === 'amber'
+        ? 'text-amber-700 hover:bg-amber-50 hover:text-amber-900'
+        : tone === 'sky'
+          ? 'text-sky-700 hover:bg-sky-50 hover:text-sky-900'
+          : tone === 'rose'
+            ? 'text-rose-700 hover:bg-rose-50 hover:text-rose-900'
+            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+
   return cn(
-    'inline-flex h-9 w-9 items-center justify-center rounded-lg ring-1 ring-inset ring-slate-200/80 transition',
-    'text-slate-700 hover:bg-slate-100 hover:text-slate-900',
+    'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ring-slate-200/80 transition',
     'focus:outline-none focus:ring-2 focus:ring-violet-500',
+    toneClass,
   )
 }
 
@@ -126,7 +178,9 @@ export function PgListPage() {
   const debouncedLocality = useDebouncedValue(localityInput, 400)
 
   const [cityFilter, setCityFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'pending' | 'approve' | 'reject' | 'inprogress'
+  >('all')
 
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -144,7 +198,7 @@ export function PgListPage() {
     const loc = debouncedLocality.trim()
     if (loc) p.locality = loc
     if (cityFilter && /^[a-f\d]{24}$/i.test(cityFilter)) p.city = cityFilter
-    if (statusFilter.trim()) p.status = statusFilter.trim()
+    if (statusFilter !== 'all') p.status = statusFilter
     if (sortBy) {
       p.sortBy = sortBy
       p.orderBy = orderAscending ? 1 : -1
@@ -189,16 +243,38 @@ export function PgListPage() {
     return out
   }, [citiesQ.data?.data])
 
-  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null)
+  const [confirm, setConfirm] = useState<
+    | null
+    | { type: 'delete'; id: string; name: string }
+    | { type: 'enable'; pg: PgRow }
+    | { type: 'disable'; pg: PgRow }
+    | { type: 'inprogress'; pg: PgRow }
+  >(null)
 
   const delMut = useMutation({
     mutationFn: (id: string) => deletePg(id),
     onSuccess: () => {
       toast.success('PG deleted')
-      setConfirmDelete(null)
+      setConfirm(null)
       qc.invalidateQueries({ queryKey: ['pgs'] })
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Delete failed'),
+  })
+
+  const statusMut = useMutation({
+    mutationFn: ({ pg, next }: { pg: PgRow; next: string }) => {
+      const id = pgRowId(pg)
+      return changePgStatus(id, { status: next })
+    },
+    onSuccess: (_, v) => {
+      toast.success(
+        v.next === 'approve' ? 'Enabled' : v.next === 'reject' ? 'Disabled' : 'Marked in progress',
+      )
+      setConfirm(null)
+      qc.invalidateQueries({ queryKey: ['pgs'] })
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.message ?? e?.response?.data?.msg ?? e?.message ?? 'Update failed'),
   })
 
   function toggleSort(col: SortCol) {
@@ -249,7 +325,7 @@ export function PgListPage() {
                   setNameInput('')
                   setLocalityInput('')
                   setCityFilter('')
-                  setStatusFilter('')
+                  setStatusFilter('all')
                   setPage(1)
                   setPageSize(20)
                   setSortBy('')
@@ -300,16 +376,24 @@ export function PgListPage() {
                 />
               </div>
               <div className="min-w-0">
-                <label className={filterLabelClass}>Status (exact)</label>
-                <Input
+                <label className={filterLabelClass} htmlFor="pg-filter-status">
+                  Status
+                </label>
+                <select
+                  id="pg-filter-status"
+                  className={filterSelectClass}
                   value={statusFilter}
                   onChange={(e) => {
                     setPage(1)
-                    setStatusFilter(e.target.value)
+                    setStatusFilter(e.target.value as typeof statusFilter)
                   }}
-                  placeholder="e.g. Active"
-                  className="rounded-xl shadow-sm ring-slate-200/90 focus:ring-violet-500"
-                />
+                >
+                  <option value="all">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="inprogress">In progress</option>
+                  <option value="approve">Enabled</option>
+                  <option value="reject">Disabled</option>
+                </select>
               </div>
               <div className="min-w-0">
                 <label className={filterLabelClass} htmlFor="pg-filter-pagesize">
@@ -365,10 +449,10 @@ export function PgListPage() {
           </div>
         </div>
 
-        <Table className="mt-5 overflow-hidden rounded-2xl ring-1 ring-slate-200/70">
+        <Table className="mt-5 [&_table]:min-w-[1024px]">
           <thead className="bg-gradient-to-r from-slate-50 to-violet-50/40">
             <tr>
-              <Th className="w-[22%]">
+              <Th className="min-w-[160px]">
                 <button
                   type="button"
                   className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
@@ -377,10 +461,10 @@ export function PgListPage() {
                   Name {sortIndicator('name')}
                 </button>
               </Th>
-              <Th className="w-[16%]">Locality</Th>
-              <Th className="w-[18%]">City</Th>
-              <Th className="w-[14%]">Status</Th>
-              <Th className="w-[18%]">
+              <Th className="min-w-[100px]">Locality</Th>
+              <Th className="min-w-[100px]">City</Th>
+              <Th className="min-w-[120px]">Status</Th>
+              <Th className="min-w-[88px] whitespace-nowrap">
                 <button
                   type="button"
                   className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
@@ -389,7 +473,7 @@ export function PgListPage() {
                   Added {sortIndicator('added_on')}
                 </button>
               </Th>
-              <Th className="w-[14%]">
+              <Th className="min-w-[88px] whitespace-nowrap">
                 <button
                   type="button"
                   className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
@@ -398,70 +482,132 @@ export function PgListPage() {
                   Updated {sortIndicator('updated_on')}
                 </button>
               </Th>
-              <Th className="w-[12%] text-center">Actions</Th>
+              <Th className="w-14 text-center">Edit</Th>
+              <Th className="min-w-[7.5rem] text-center">Workflow</Th>
+              <Th className="w-14 text-center">Delete</Th>
             </tr>
           </thead>
           <tbody>
+            {listQ.isLoading ? (
+              <Tr>
+                <Td colSpan={9} className="py-12 text-center text-sm text-slate-500">
+                  Loading PG listings…
+                </Td>
+              </Tr>
+            ) : null}
             {!listQ.isLoading && rows.length === 0 ? (
               <Tr>
-                <Td colSpan={7} className="py-16 text-center text-sm text-slate-500">
+                <Td colSpan={9} className="py-16 text-center text-sm text-slate-500">
                   No PGs match these filters.
                 </Td>
               </Tr>
             ) : null}
-            {rows.map((pg) => {
+            {!listQ.isLoading &&
+              rows.map((pg) => {
               const id = pgRowId(pg)
               const name = typeof pg.name === 'string' ? pg.name : '—'
-              const st = typeof pg.status === 'string' ? pg.status : pg.status != null ? String(pg.status) : '—'
+              const st = pgStatusRaw(pg)
               const added = pgAddedOn(pg)
               const updated = pgUpdatedOn(pg)
 
               return (
                 <Tr key={id || name}>
-                  <Td className="align-middle font-medium text-slate-900">
-                    <div className="line-clamp-2 min-w-0">{name}</div>
+                  <Td className="max-w-[220px] align-middle py-2.5">
+                    <div className="truncate font-semibold text-slate-900" title={name}>
+                      {name}
+                    </div>
                   </Td>
-                  <Td className="align-middle text-sm text-slate-700">{localityLabel(pg)}</Td>
-                  <Td className="align-middle text-sm text-slate-700">{cityLabel(pg)}</Td>
-                  <Td className="align-middle whitespace-nowrap text-sm font-medium text-slate-800">{st}</Td>
-                  <Td className="align-middle whitespace-nowrap text-xs text-slate-600">{fmtDate(added)}</Td>
-                  <Td className="align-middle whitespace-nowrap text-xs text-slate-600">{fmtDate(updated)}</Td>
-                  <Td className="align-middle">
-                    <div className="flex items-center justify-center gap-2">
-                      <IconTooltip label="View / edit">
+                  <Td className="align-middle py-2.5 text-sm text-slate-700">
+                    <span className="line-clamp-1" title={localityLabel(pg)}>
+                      {localityLabel(pg)}
+                    </span>
+                  </Td>
+                  <Td className="align-middle py-2.5 text-sm text-slate-700">{cityLabel(pg)}</Td>
+                  <Td className="align-middle py-2.5">
+                    <span
+                      className={cn(
+                        'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ring-1 ring-inset',
+                        statusPillClass(st),
+                        statusClass(st),
+                      )}
+                    >
+                      {statusLabel(st)}
+                    </span>
+                  </Td>
+                  <Td
+                    className="align-middle py-2.5 text-xs text-slate-600"
+                    title={added ? fmtDate(added) : undefined}
+                  >
+                    {fmtDateShort(added)}
+                  </Td>
+                  <Td
+                    className="align-middle py-2.5 text-xs text-slate-600"
+                    title={updated ? fmtDate(updated) : undefined}
+                  >
+                    {fmtDateShort(updated)}
+                  </Td>
+                  <Td className="align-middle py-2.5 text-center">
+                    <IconTooltip label="Edit">
+                      <button
+                        type="button"
+                        className={iconButtonClass('slate')}
+                        onClick={() => id && navigate(`/layout/pg/${id}/edit`)}
+                        aria-label="Edit PG"
+                        disabled={!id}
+                      >
+                        <PencilSquareIcon className="h-4 w-4" aria-hidden />
+                      </button>
+                    </IconTooltip>
+                  </Td>
+                  <Td className="align-middle py-2.5">
+                    <div className="flex flex-nowrap items-center justify-center gap-1">
+                      <IconTooltip label="Enable">
                         <button
                           type="button"
-                          className={iconBtnNeutral()}
-                          onClick={() => id && navigate(`/layout/pg/${id}/edit`)}
-                          aria-label="View or edit PG"
-                          disabled={!id}
+                          className={iconButtonClass('emerald')}
+                          onClick={() => id && setConfirm({ type: 'enable', pg })}
+                          aria-label="Enable PG"
+                          disabled={!id || statusMut.isPending}
                         >
-                          <EyeIcon className="h-5 w-5" aria-hidden />
+                          <CheckCircleIcon className="h-4 w-4" aria-hidden />
                         </button>
                       </IconTooltip>
-                      <IconTooltip label="Edit">
+                      <IconTooltip label="In progress">
                         <button
                           type="button"
-                          className={iconBtnNeutral()}
-                          onClick={() => id && navigate(`/layout/pg/${id}/edit`)}
-                          aria-label="Edit PG"
-                          disabled={!id}
+                          className={iconButtonClass('sky')}
+                          onClick={() => id && setConfirm({ type: 'inprogress', pg })}
+                          aria-label="Mark PG in progress"
+                          disabled={!id || statusMut.isPending}
                         >
-                          <PencilSquareIcon className="h-5 w-5" aria-hidden />
+                          <ClockIcon className="h-4 w-4" aria-hidden />
                         </button>
                       </IconTooltip>
-                      <IconTooltip label="Delete">
+                      <IconTooltip label="Disable">
                         <button
                           type="button"
-                          className={cn(iconBtnNeutral(), 'text-rose-700 hover:bg-rose-50 hover:text-rose-900')}
-                          onClick={() => id && setConfirmDelete({ id, name })}
-                          aria-label="Delete PG"
-                          disabled={!id}
+                          className={iconButtonClass('amber')}
+                          onClick={() => id && setConfirm({ type: 'disable', pg })}
+                          aria-label="Disable PG"
+                          disabled={!id || statusMut.isPending}
                         >
-                          <TrashIcon className="h-5 w-5" aria-hidden />
+                          <XCircleIcon className="h-4 w-4" aria-hidden />
                         </button>
                       </IconTooltip>
                     </div>
+                  </Td>
+                  <Td className="align-middle py-2.5 text-center">
+                    <IconTooltip label="Delete">
+                      <button
+                        type="button"
+                        className={iconButtonClass('rose')}
+                        onClick={() => id && setConfirm({ type: 'delete', id, name })}
+                        aria-label="Delete PG"
+                        disabled={!id}
+                      >
+                        <TrashIcon className="h-4 w-4" aria-hidden />
+                      </button>
+                    </IconTooltip>
                   </Td>
                 </Tr>
               )
@@ -471,13 +617,59 @@ export function PgListPage() {
       </PageShell>
 
       <ConfirmDialog
-        open={!!confirmDelete}
+        open={confirm?.type === 'delete'}
         title="Delete PG?"
-        description={confirmDelete ? `Soft-delete “${confirmDelete.name}”?` : undefined}
+        description={confirm?.type === 'delete' ? `Soft-delete “${confirm.name}”?` : undefined}
         confirmText="Delete"
         danger
-        onCancel={() => setConfirmDelete(null)}
-        onConfirm={() => confirmDelete && delMut.mutate(confirmDelete.id)}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => confirm?.type === 'delete' && delMut.mutate(confirm.id)}
+      />
+
+      <ConfirmDialog
+        open={confirm?.type === 'enable'}
+        title="Enable PG?"
+        description={
+          confirm?.type === 'enable'
+            ? `Set “${typeof confirm.pg.name === 'string' ? confirm.pg.name : 'this PG'}” to ENABLED?`
+            : undefined
+        }
+        confirmText="Enable"
+        onCancel={() => setConfirm(null)}
+        onConfirm={() =>
+          confirm?.type === 'enable' && statusMut.mutate({ pg: confirm.pg, next: 'approve' })
+        }
+      />
+
+      <ConfirmDialog
+        open={confirm?.type === 'disable'}
+        title="Disable PG?"
+        description={
+          confirm?.type === 'disable'
+            ? `Set “${typeof confirm.pg.name === 'string' ? confirm.pg.name : 'this PG'}” to DISABLED?`
+            : undefined
+        }
+        confirmText="Disable"
+        danger
+        onCancel={() => setConfirm(null)}
+        onConfirm={() =>
+          confirm?.type === 'disable' && statusMut.mutate({ pg: confirm.pg, next: 'reject' })
+        }
+      />
+
+      <ConfirmDialog
+        open={confirm?.type === 'inprogress'}
+        title="Mark PG in progress?"
+        description={
+          confirm?.type === 'inprogress'
+            ? `Set “${typeof confirm.pg.name === 'string' ? confirm.pg.name : 'this PG'}” to IN PROGRESS?`
+            : undefined
+        }
+        confirmText="Mark in progress"
+        onCancel={() => setConfirm(null)}
+        onConfirm={() =>
+          confirm?.type === 'inprogress' && statusMut.mutate({ pg: confirm.pg, next: 'inprogress' })
+        }
       />
     </>
   )

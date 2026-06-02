@@ -7,6 +7,19 @@ export type SeoSocial = {
   image?: SeoSocialImage
 }
 
+export type SeoFaq = {
+  question: string
+  answer: string
+}
+
+export type SeoReview = {
+  name: string
+  review: string
+  rating: number | null
+  company_name: string
+  designation: string
+}
+
 /** Matches Angular `SEO` in `work-space.model.ts`. */
 export type SeoRecord = {
   id?: string
@@ -24,4 +37,6 @@ export type SeoRecord = {
   path?: string
   twitter?: SeoSocial
   open_graph?: SeoSocial
+  faqs?: SeoFaq[]
+  reviews?: SeoReview[]
 }

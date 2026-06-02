@@ -27,6 +27,7 @@ import { OfficeSpaceListPage } from './pages/office-space/OfficeSpaceListPage'
 import { OfficeSpaceFormPage } from './pages/office-space/OfficeSpaceFormPage'
 import { PgFormPage } from './pages/pg/PgFormPage'
 import { PgListPage } from './pages/pg/PgListPage'
+import { PgPriorityPage } from './pages/pg/PgPriorityPage'
 import { EnquiryFormPage } from './pages/enquiry/EnquiryFormPage'
 import { EnquiryListPage } from './pages/enquiry/EnquiryListPage'
 import { SpacehaatUserAccessPage } from './pages/spacehaat-users/SpacehaatUserAccessPage'
@@ -135,6 +136,7 @@ function App() {
         <Route path="office-space/add" element={<OfficeSpaceFormPage />} />
 
         <Route path="pg" element={<PgListPage />} />
+        <Route path="pg/priority" element={<PgPriorityPage />} />
         <Route path="pg/new" element={<PgFormPage />} />
         <Route path="pg/:pgId/edit" element={<PgFormPage />} />
 

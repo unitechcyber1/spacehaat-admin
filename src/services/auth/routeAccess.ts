@@ -41,10 +41,10 @@ export function isLayoutPathAllowed(pathname: string): boolean {
 
 /** First screen after login or `/layout` when the user is restricted to a subset of routes. */
 export function getDefaultLayoutPathForUser(): string {
-  if (isStoredUserAdmin()) return '/layout/space-from-listing'
+  if (isStoredUserAdmin()) return '/layout/enquiry'
   const paths = getUserAccessPaths()
   if (paths.length === 0) return NO_ACCESS_PATH
-  const preferred = '/layout/space-from-listing'
+  const preferred = '/layout/enquiry'
   if (paths.some((p) => trimSlash(p) === preferred)) return preferred
   const sorted = [...paths].map(trimSlash).sort((a, b) => a.localeCompare(b))
   return sorted[0] ?? NO_ACCESS_PATH

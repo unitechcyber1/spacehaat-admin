@@ -7,11 +7,15 @@ import { Input } from '../../components/Input'
 import { PageShell } from '../../components/PageShell'
 import { RichTextEditor } from '../../components/RichTextEditor/RichTextEditor'
 import { getSeoById, saveSeo } from '../../services/seo/seo.service'
-import type { SeoRecord, SeoSocial, SeoSocialImage } from '../../services/seo/types'
+import type { SeoFaq, SeoRecord, SeoReview, SeoSocial, SeoSocialImage } from '../../services/seo/types'
 import { uploadAdminFile } from '../../services/upload/upload.service'
 
 function emptySocial(): SeoSocial {
   return { title: '', description: '', image: undefined }
+}
+
+function emptyReview(): SeoReview {
+  return { name: '', review: '', rating: null, company_name: '', designation: '' }
 }
 
 function emptySeo(): SeoRecord {
@@ -27,6 +31,8 @@ function emptySeo(): SeoRecord {
     footer_description: '',
     twitter: emptySocial(),
     open_graph: emptySocial(),
+    faqs: [],
+    reviews: [],
   }
 }
 
@@ -102,6 +108,8 @@ export function SeoFormPage() {
       footer_description,
       twitter: { ...emptySocial(), ...row.twitter },
       open_graph: { ...emptySocial(), ...row.open_graph },
+      faqs: Array.isArray(row.faqs) ? row.faqs : [],
+      reviews: Array.isArray(row.reviews) ? row.reviews : [],
     })
     setIndexFlag(row.robots === 'index, follow')
   }, [isEdit, existingQ.data])
@@ -126,6 +134,36 @@ export function SeoFormPage() {
 
   function patchOg(partial: Partial<SeoSocial>) {
     setSeo((prev) => ({ ...prev, open_graph: { ...emptySocial(), ...prev.open_graph, ...partial } }))
+  }
+
+  function addFaq() {
+    setSeo((prev) => ({ ...prev, faqs: [...(prev.faqs ?? []), { question: '', answer: '' }] }))
+  }
+
+  function removeFaq(index: number) {
+    setSeo((prev) => ({ ...prev, faqs: (prev.faqs ?? []).filter((_, i) => i !== index) }))
+  }
+
+  function patchFaq(index: number, partial: Partial<SeoFaq>) {
+    setSeo((prev) => ({
+      ...prev,
+      faqs: (prev.faqs ?? []).map((faq, i) => (i === index ? { ...faq, ...partial } : faq)),
+    }))
+  }
+
+  function addReview() {
+    setSeo((prev) => ({ ...prev, reviews: [...(prev.reviews ?? []), emptyReview()] }))
+  }
+
+  function removeReview(index: number) {
+    setSeo((prev) => ({ ...prev, reviews: (prev.reviews ?? []).filter((_, i) => i !== index) }))
+  }
+
+  function patchReview(index: number, partial: Partial<SeoReview>) {
+    setSeo((prev) => ({
+      ...prev,
+      reviews: (prev.reviews ?? []).map((r, i) => (i === index ? { ...r, ...partial } : r)),
+    }))
   }
 
   async function onUploadTwitter(f: File) {
@@ -191,7 +229,7 @@ export function SeoFormPage() {
   return (
     <PageShell
       title={title}
-      description="Page details, meta, Twitter / Open Graph, scripts, and footer — aligned with the Angular SEO detail form."
+      description="Page details, meta, Twitter / Open Graph, scripts, FAQs, reviews, and footer — aligned with the Angular SEO detail form."
       actions={
         <Button type="button" variant="secondary" onClick={() => navigate('/layout/seo')}>
           Back to list
@@ -386,6 +424,151 @@ export function SeoFormPage() {
               rows={12}
               placeholder="Script paste here"
             />
+          </section>
+
+          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-base font-semibold text-slate-900">FAQs</h3>
+              <Button type="button" variant="secondary" onClick={addFaq}>
+                Add FAQ
+              </Button>
+            </div>
+            {(seo.faqs ?? []).length === 0 ? (
+              <p className="text-sm text-slate-500">No FAQs added yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {(seo.faqs ?? []).map((faq, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 ring-1 ring-slate-200/40"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-slate-800">FAQ {i + 1}</span>
+                      <Button type="button" variant="secondary" onClick={() => removeFaq(i)}>
+                        Remove
+                      </Button>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Question
+                        </label>
+                        <Input
+                          value={faq.question}
+                          onChange={(e) => patchFaq(i, { question: e.target.value })}
+                          className="mt-1 rounded-xl"
+                          placeholder="Question"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Answer
+                        </label>
+                        <textarea
+                          value={faq.answer}
+                          onChange={(e) => patchFaq(i, { answer: e.target.value })}
+                          className={fieldClass}
+                          rows={2}
+                          placeholder="Answer"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-base font-semibold text-slate-900">Reviews</h3>
+              <Button type="button" variant="secondary" onClick={addReview}>
+                Add review
+              </Button>
+            </div>
+            {(seo.reviews ?? []).length === 0 ? (
+              <p className="text-sm text-slate-500">No reviews added yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {(seo.reviews ?? []).map((r, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 ring-1 ring-slate-200/40"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-slate-800">Review {i + 1}</span>
+                      <Button type="button" variant="secondary" onClick={() => removeReview(i)}>
+                        Remove
+                      </Button>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <div>
+                        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Name</label>
+                        <Input
+                          value={r.name}
+                          onChange={(e) => patchReview(i, { name: e.target.value })}
+                          className="mt-1 rounded-xl"
+                          placeholder="Name"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Company name
+                        </label>
+                        <Input
+                          value={r.company_name}
+                          onChange={(e) => patchReview(i, { company_name: e.target.value })}
+                          className="mt-1 rounded-xl"
+                          placeholder="Company name"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Designation
+                        </label>
+                        <Input
+                          value={r.designation}
+                          onChange={(e) => patchReview(i, { designation: e.target.value })}
+                          className="mt-1 rounded-xl"
+                          placeholder="Designation"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,8rem)_1fr]">
+                      <div>
+                        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Rating (1–5)
+                        </label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={5}
+                          value={r.rating ?? ''}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            patchReview(i, { rating: v === '' ? null : Number(v) })
+                          }}
+                          className="mt-1 rounded-xl"
+                          placeholder="1–5"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Review</label>
+                        <textarea
+                          value={r.review}
+                          onChange={(e) => patchReview(i, { review: e.target.value })}
+                          className={fieldClass}
+                          rows={2}
+                          placeholder="Review"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
