@@ -1,7 +1,7 @@
 /* TipTap / ProseMirror */
 .rich-text-editor .ProseMirror {
   outline: none;
-  min-height: inherit;
+  min-height: 100%;
 }
 
 .rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
@@ -18,10 +18,63 @@
   margin: 0.75rem 0 0.35rem;
 }
 
+.rich-text-editor .ProseMirror h1 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 0.85rem 0 0.4rem;
+}
+
 .rich-text-editor .ProseMirror h3 {
   font-size: 1rem;
   font-weight: 600;
   margin: 0.5rem 0 0.25rem;
+}
+
+.rich-text-editor .ProseMirror h4,
+.rich-text-editor .ProseMirror h5,
+.rich-text-editor .ProseMirror h6 {
+  font-weight: 600;
+  margin: 0.4rem 0 0.2rem;
+}
+
+.rich-text-editor .ProseMirror h4 {
+  font-size: 0.95rem;
+}
+.rich-text-editor .ProseMirror h5 {
+  font-size: 0.9rem;
+}
+.rich-text-editor .ProseMirror h6 {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.rich-text-editor .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+.rich-text-editor .ProseMirror th,
+.rich-text-editor .ProseMirror td {
+  border: 1px solid #cbd5e1;
+  padding: 0.35rem 0.5rem;
+  vertical-align: top;
+}
+
+.rich-text-editor .ProseMirror th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.rich-text-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.rich-text-editor .ProseMirror u {
+  text-decoration: underline;
 }
 
 .rich-text-editor .ProseMirror p {

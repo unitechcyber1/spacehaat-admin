@@ -654,7 +654,7 @@ export function CoworkingSpaceDetailPage() {
               <label className="text-xs font-semibold text-slate-700">Description</label>
               <RichTextEditor
                 className="mt-1"
-                minHeightClass="min-h-[180px]"
+            contentHeightClass="h-[180px]"
                 value={(ws.description as string) ?? ''}
                 onChange={(html) => setWs({ ...ws, description: html })}
                 placeholder="Describe the space…"

@@ -826,7 +826,7 @@ export function OfficeSpaceFormPage() {
           <RichTextEditor
             value={typeof os.description === 'string' ? os.description : ''}
             onChange={(html) => setField({ description: html })}
-            minHeightClass="min-h-[200px]"
+            contentHeightClass="h-[200px]"
             placeholder="Description…"
           />,
         )}

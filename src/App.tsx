@@ -33,6 +33,8 @@ import { EnquiryListPage } from './pages/enquiry/EnquiryListPage'
 import { SpacehaatUserAccessPage } from './pages/spacehaat-users/SpacehaatUserAccessPage'
 import { SpacehaatUserFormPage } from './pages/spacehaat-users/SpacehaatUserFormPage'
 import { SpacehaatUsersListPage } from './pages/spacehaat-users/SpacehaatUsersListPage'
+import { BlogFormPage } from './pages/blog/BlogFormPage'
+import { BlogListPage } from './pages/blog/BlogListPage'
 import { NoAccessPage } from './pages/NoAccessPage'
 
 function LegacyCoworkingDetailRedirect() {
@@ -167,9 +169,9 @@ function App() {
         <Route path="media/detail/:brandAdsId" element={<MediaFormPage />} />
         <Route path="media/add" element={<MediaFormPage />} />
 
-        <Route path="blog" element={<PlaceholderPage title="Blog" />} />
-        <Route path="blog/detail/:blogId" element={<PlaceholderPage title="Blog / Detail" />} />
-        <Route path="blog/add" element={<PlaceholderPage title="Blog / Add" />} />
+        <Route path="blog" element={<BlogListPage />} />
+        <Route path="blog/detail/:blogId" element={<BlogFormPage />} />
+        <Route path="blog/add" element={<BlogFormPage />} />
 
         <Route path="country" element={<CountryPage />} />
         <Route path="state" element={<StatePage />} />

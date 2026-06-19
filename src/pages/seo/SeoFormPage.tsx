@@ -241,7 +241,7 @@ export function SeoFormPage() {
       ) : showError ? (
         <p className="text-sm text-rose-600">Could not load SEO entry.</p>
       ) : showForm ? (
-        <form onSubmit={onSubmit} className="max-w-4xl space-y-8">
+        <form onSubmit={onSubmit} className="max-w-6xl space-y-8">
           <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Page details</h3>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -573,7 +573,7 @@ export function SeoFormPage() {
 
           <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Footer</h3>
-            <div>
+            <div className="mb-4">
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="seo-footer-title">
                 Footer title
               </label>
@@ -585,17 +585,15 @@ export function SeoFormPage() {
                 placeholder="Footer title"
               />
             </div>
-            <div className="mt-4">
+            <div>
               <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Footer description
               </div>
-              <p className="mb-2 text-xs text-slate-500">Rich text (HTML stored like the legacy CKEditor field).</p>
               <RichTextEditor
-                key={isEdit ? `footer-${seoId}` : 'footer-new'}
+                mode="full"
                 value={seo.footer_description ?? ''}
                 onChange={(html) => patchSeo({ footer_description: html })}
                 placeholder="Footer description…"
-                minHeightClass="min-h-[220px]"
               />
             </div>
           </section>
