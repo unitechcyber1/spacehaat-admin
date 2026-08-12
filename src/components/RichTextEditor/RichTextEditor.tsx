@@ -1,20 +1,17 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { EditorContent, useEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Placeholder from '@tiptap/extension-placeholder'
-import Link from '@tiptap/extension-link'
-import Underline from '@tiptap/extension-underline'
-import Image from '@tiptap/extension-image'
-import { Table } from '@tiptap/extension-table'
-import TableRow from '@tiptap/extension-table-row'
-import TableCell from '@tiptap/extension-table-cell'
-import TableHeader from '@tiptap/extension-table-header'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import toast from 'react-hot-toast'
 import { cn } from '../../lib/ui'
 import { uploadAdminFile } from '../../services/upload/upload.service'
-import '../RichTextEditor/rich-text-editor.css'
+import { buildExtensions } from './editorExtensions'
+import { EditorToolbar } from './EditorToolbar'
+import { ImageDialog, LinkDialog, TableDialog, type ImageValue, type LinkValue } from './EditorDialogs'
+import './rich-text-editor.css'
 
 export type RichTextEditorMode = 'compact' | 'full'
+
+const EMPTY_LINK: LinkValue = { href: '', text: '', newTab: false, nofollow: false, sponsored: false }
+const EMPTY_IMAGE: ImageValue = { src: '', alt: '', title: '', width: '', align: '' }
 
 export type RichTextEditorProps = {
   value: string
@@ -26,8 +23,10 @@ export type RichTextEditorProps = {
   contentHeightClass?: string
   /** @deprecated Use `contentHeightClass` */
   minHeightClass?: string
-  /** `full` enables H1–H6, underline, tables, images. Default `compact` for legacy forms. */
+  /** `full` enables headings H1–H6, colours, alignment, tables, images, source view. */
   mode?: RichTextEditorMode
+  /** Show the word count / SEO hint bar (full mode only). Defaults to true. */
+  showStatusBar?: boolean
 }
 
 export function RichTextEditor({
@@ -39,47 +38,101 @@ export function RichTextEditor({
   contentHeightClass,
   minHeightClass,
   mode = 'compact',
+  showStatusBar = true,
 }: RichTextEditorProps) {
-  const fileRef = useRef<HTMLInputElement>(null)
   const isFull = mode === 'full'
   const resolvedHeightClass =
     contentHeightClass ??
     minHeightClass?.replace(/^min-h-/, 'h-') ??
-    (isFull ? 'h-[320px]' : 'h-[200px]')
+    (isFull ? 'h-[420px]' : 'h-[200px]')
+
+  const [sourceMode, setSourceMode] = useState(false)
+  const [sourceDraft, setSourceDraft] = useState('')
+  const [fullscreen, setFullscreen] = useState(false)
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [linkInitial, setLinkInitial] = useState<LinkValue>(EMPTY_LINK)
+  const [imageOpen, setImageOpen] = useState(false)
+  const [imageInitial, setImageInitial] = useState<ImageValue>(EMPTY_IMAGE)
+  const [tableOpen, setTableOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
 
   const extensions = useMemo(
-    () => [
-      StarterKit.configure({
-        heading: { levels: isFull ? [1, 2, 3, 4, 5, 6] : [2, 3] },
-        bulletList: { HTMLAttributes: { class: 'list-disc pl-5' } },
-        orderedList: { HTMLAttributes: { class: 'list-decimal pl-5' } },
-      }),
-      Placeholder.configure({ placeholder }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: { class: 'text-violet-600 underline' },
-      }),
-      ...(isFull
-        ? [
-            Underline,
-            Image.configure({ HTMLAttributes: { class: 'max-w-full rounded-lg' } }),
-            Table.configure({ resizable: true }),
-            TableRow,
-            TableHeader,
-            TableCell,
-          ]
-        : []),
-    ],
+    () => buildExtensions({ placeholder, full: isFull }),
     [placeholder, isFull],
   )
+
+  const uploadImage = useCallback(async (file: File): Promise<string | null> => {
+    setUploading(true)
+    try {
+      const up = (await uploadAdminFile(file)) as { s3_link?: string; id?: string }
+      if (!up?.s3_link) {
+        toast.error('Upload did not return an image URL')
+        return null
+      }
+      return up.s3_link
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string }
+      toast.error(err?.response?.data?.message ?? err?.message ?? 'Image upload failed')
+      return null
+    } finally {
+      setUploading(false)
+    }
+  }, [])
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions,
     content: value || '',
     editable: !disabled,
+    editorProps: {
+      attributes: { class: 'rte-content' },
+      handlePaste: (view, event) => {
+        if (!isFull) return false
+        const files = Array.from(event.clipboardData?.files ?? []).filter((f) =>
+          f.type.startsWith('image/'),
+        )
+        if (files.length === 0) return false
+        event.preventDefault()
+        void (async () => {
+          for (const file of files) {
+            const src = await uploadImage(file)
+            if (src) {
+              view.dispatch(
+                view.state.tr.replaceSelectionWith(
+                  view.state.schema.nodes.image.create({ src, alt: '', loading: 'lazy' }),
+                ),
+              )
+            }
+          }
+        })()
+        return true
+      },
+      handleDrop: (view, event) => {
+        if (!isFull) return false
+        const dt = (event as DragEvent).dataTransfer
+        const files = Array.from(dt?.files ?? []).filter((f) => f.type.startsWith('image/'))
+        if (files.length === 0) return false
+        event.preventDefault()
+        const coords = view.posAtCoords({
+          left: (event as DragEvent).clientX,
+          top: (event as DragEvent).clientY,
+        })
+        void (async () => {
+          for (const file of files) {
+            const src = await uploadImage(file)
+            if (!src) continue
+            const node = view.state.schema.nodes.image.create({ src, alt: '', loading: 'lazy' })
+            const pos = coords?.pos ?? view.state.selection.from
+            view.dispatch(view.state.tr.insert(pos, node))
+          }
+        })()
+        return true
+      },
+    },
     onUpdate: ({ editor: ed }) => {
-      onChange(ed.getHTML())
+      onChangeRef.current(ed.getHTML())
     },
   })
 
@@ -88,27 +141,105 @@ export function RichTextEditor({
   }, [editor, disabled])
 
   useLayoutEffect(() => {
-    if (!editor) return
+    if (!editor || sourceMode) return
     const next = value ?? ''
     const current = editor.getHTML()
     if (htmlEquivalentForSync(current, next)) return
     editor.commands.setContent(next === '' ? '<p></p>' : next, { emitUpdate: false })
-  }, [editor, value])
+  }, [editor, value, sourceMode])
 
-  async function onImagePick(file: File) {
-    if (!editor) return
-    try {
-      const up = (await uploadAdminFile(file)) as { s3_link?: string; id?: string }
-      const src = up?.s3_link
-      if (!src) {
-        toast.error('Upload missing image URL')
-        return
-      }
-      editor.chain().focus().setImage({ src, alt: file.name }).run()
-    } catch (e: unknown) {
-      const err = e as { message?: string }
-      toast.error(err?.message ?? 'Image upload failed')
+  useEffect(() => {
+    if (!fullscreen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFullscreen(false)
     }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [fullscreen])
+
+  function toggleSource() {
+    if (!editor) return
+    if (sourceMode) {
+      editor.commands.setContent(sourceDraft || '<p></p>', { emitUpdate: false })
+      onChangeRef.current(editor.getHTML())
+      setSourceMode(false)
+      return
+    }
+    setSourceDraft(formatHtml(editor.getHTML()))
+    setSourceMode(true)
+  }
+
+  function openLinkDialog() {
+    if (!editor) return
+    const attrs = editor.getAttributes('link') as { href?: string; target?: string; rel?: string }
+    const rel = attrs.rel ?? ''
+    setLinkInitial({
+      href: attrs.href ?? '',
+      text: '',
+      newTab: attrs.target === '_blank',
+      nofollow: rel.includes('nofollow'),
+      sponsored: rel.includes('sponsored'),
+    })
+    setLinkOpen(true)
+  }
+
+  function openImageDialog() {
+    if (!editor) return
+    const attrs = editor.getAttributes('image') as Record<string, string | undefined>
+    setImageInitial({
+      src: attrs.src ?? '',
+      alt: attrs.alt ?? '',
+      title: attrs.title ?? '',
+      width: attrs.width ?? '',
+      align: (attrs.align as ImageValue['align']) ?? '',
+    })
+    setImageOpen(true)
+  }
+
+  function applyLink(v: LinkValue) {
+    if (!editor) return
+    const rel = [
+      'noopener',
+      'noreferrer',
+      v.nofollow ? 'nofollow' : '',
+      v.sponsored ? 'sponsored' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+    const attrs = { href: v.href.trim(), target: v.newTab ? '_blank' : null, rel }
+    const { empty } = editor.state.selection
+    if (empty && v.text.trim()) {
+      editor
+        .chain()
+        .focus()
+        .insertContent({ type: 'text', text: v.text.trim(), marks: [{ type: 'link', attrs }] })
+        .run()
+    } else {
+      editor.chain().focus().extendMarkRange('link').setLink(attrs).run()
+    }
+    setLinkOpen(false)
+  }
+
+  function applyImage(v: ImageValue) {
+    if (!editor) return
+    editor
+      .chain()
+      .focus()
+      .setImage({
+        src: v.src.trim(),
+        alt: v.alt.trim(),
+        title: v.title.trim() || null,
+        width: v.width.trim() || null,
+        align: v.align || null,
+        loading: 'lazy',
+      } as never)
+      .run()
+    setImageOpen(false)
   }
 
   if (!editor) {
@@ -125,123 +256,154 @@ export function RichTextEditor({
     )
   }
 
-  return (
+  const shell = (
     <div
       className={cn(
-        'rich-text-editor rounded-xl border border-slate-200 bg-white/90 ring-1 ring-slate-200/80',
+        'rich-text-editor flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white ring-1 ring-slate-200/80',
         disabled && 'pointer-events-none opacity-60',
+        fullscreen && 'h-full rounded-none border-0 ring-0',
         className,
       )}
     >
-      <div className="flex flex-wrap gap-1 border-b border-slate-200/80 bg-slate-50/90 px-2 py-1.5">
-        <ToolbarBtn
-          label="B"
-          active={editor.isActive('bold')}
-          onClick={() => editor.chain().focus().toggleBold().run()}
-        />
-        <ToolbarBtn
-          label="I"
-          active={editor.isActive('italic')}
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-        />
-        {isFull ? (
-          <ToolbarBtn
-            label="U"
-            active={editor.isActive('underline')}
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
-          />
-        ) : null}
+      <EditorToolbar
+        editor={editor}
+        full={isFull}
+        sourceMode={sourceMode}
+        fullscreen={fullscreen}
+        onToggleSource={toggleSource}
+        onToggleFullscreen={() => setFullscreen((f) => !f)}
+        onOpenLink={openLinkDialog}
+        onOpenImage={openImageDialog}
+        onOpenTable={() => setTableOpen(true)}
+      />
 
-        {isFull ? (
-          <>
-            {[1, 2, 3, 4, 5, 6].map((level) => (
-              <ToolbarBtn
-                key={level}
-                label={`H${level}`}
-                active={editor.isActive('heading', { level: level as 1 | 2 | 3 | 4 | 5 | 6 })}
-                onClick={() =>
-                  editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 | 4 | 5 | 6 }).run()
-                }
-              />
-            ))}
-          </>
-        ) : (
-          <>
-            <ToolbarBtn
-              label="H2"
-              active={editor.isActive('heading', { level: 2 })}
-              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            />
-            <ToolbarBtn
-              label="H3"
-              active={editor.isActive('heading', { level: 3 })}
-              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            />
-          </>
-        )}
+      {sourceMode ? (
+        <textarea
+          value={sourceDraft}
+          onChange={(e) => setSourceDraft(e.target.value)}
+          spellCheck={false}
+          className={cn(
+            'w-full resize-none bg-slate-950 px-4 py-3 font-mono text-xs leading-relaxed text-slate-100 outline-none',
+            fullscreen ? 'flex-1' : resolvedHeightClass,
+          )}
+        />
+      ) : (
+        <div
+          className={cn(
+            'overflow-y-auto overscroll-contain',
+            fullscreen ? 'flex-1' : resolvedHeightClass,
+          )}
+        >
+          <EditorContent editor={editor} />
+        </div>
+      )}
 
-        <ToolbarBtn
-          label="• List"
-          active={editor.isActive('bulletList')}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-        />
-        <ToolbarBtn
-          label="1. List"
-          active={editor.isActive('orderedList')}
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        />
+      {isFull && showStatusBar ? <StatusBar editor={editor} uploading={uploading} /> : null}
+    </div>
+  )
 
-        {isFull ? (
-          <>
-            <ToolbarBtn
-              label="Table"
-              onClick={() =>
-                editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-              }
-            />
-            <ToolbarBtn label="＋Row" onClick={() => editor.chain().focus().addRowAfter().run()} />
-            <ToolbarBtn label="＋Col" onClick={() => editor.chain().focus().addColumnAfter().run()} />
-            <ToolbarBtn
-              label="Image"
-              onClick={() => fileRef.current?.click()}
-            />
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) void onImagePick(f)
-                e.target.value = ''
-              }}
-            />
-          </>
-        ) : null}
+  return (
+    <>
+      {fullscreen ? (
+        <div className="fixed inset-0 z-[80] flex flex-col bg-white p-0">{shell}</div>
+      ) : (
+        shell
+      )}
 
-        <ToolbarBtn
-          label="Link"
-          active={editor.isActive('link')}
-          onClick={() => {
-            const prev = editor.getAttributes('link').href
-            const url = window.prompt('URL', prev ?? 'https://')
-            if (url === null) return
-            if (url === '') {
-              editor.chain().focus().extendMarkRange('link').unsetLink().run()
-              return
-            }
-            editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
-          }}
-        />
-        <ToolbarBtn label="Undo" onClick={() => editor.chain().focus().undo().run()} />
-        <ToolbarBtn label="Redo" onClick={() => editor.chain().focus().redo().run()} />
-      </div>
-      <div className={cn('overflow-y-auto overscroll-contain', resolvedHeightClass)}>
-        <EditorContent
-          editor={editor}
-          className="px-3 py-2 text-sm leading-relaxed text-slate-900"
-        />
-      </div>
+      <LinkDialog
+        open={linkOpen}
+        initial={linkInitial}
+        hasSelection={!editor.state.selection.empty}
+        canRemove={editor.isActive('link')}
+        onCancel={() => setLinkOpen(false)}
+        onSubmit={applyLink}
+        onRemove={() => {
+          editor.chain().focus().extendMarkRange('link').unsetLink().run()
+          setLinkOpen(false)
+        }}
+      />
+
+      <ImageDialog
+        open={imageOpen}
+        initial={imageInitial}
+        uploading={uploading}
+        onCancel={() => setImageOpen(false)}
+        onUpload={uploadImage}
+        onSubmit={applyImage}
+      />
+
+      <TableDialog
+        open={tableOpen}
+        onCancel={() => setTableOpen(false)}
+        onSubmit={(rows, cols, withHeaderRow) => {
+          editor.chain().focus().insertTable({ rows, cols, withHeaderRow }).run()
+          setTableOpen(false)
+        }}
+      />
+    </>
+  )
+}
+
+function StatusBar({ editor, uploading }: { editor: ReturnType<typeof useEditor>; uploading: boolean }) {
+  const stats = useEditorState({
+    editor,
+    selector: ({ editor: ed }) => {
+      if (!ed) return null
+      const storage = ed.storage.characterCount as
+        | { words?: () => number; characters?: () => number }
+        | undefined
+      let h1 = 0
+      let headings = 0
+      let images = 0
+      let imagesMissingAlt = 0
+      let links = 0
+      ed.state.doc.descendants((node) => {
+        if (node.type.name === 'heading') {
+          headings += 1
+          if (node.attrs.level === 1) h1 += 1
+        }
+        if (node.type.name === 'image') {
+          images += 1
+          if (!String(node.attrs.alt ?? '').trim()) imagesMissingAlt += 1
+        }
+        if (node.marks?.some((m) => m.type.name === 'link')) links += 1
+        return true
+      })
+      const words = storage?.words?.() ?? 0
+      return {
+        words,
+        characters: storage?.characters?.() ?? 0,
+        readingMinutes: Math.max(1, Math.round(words / 200)),
+        h1,
+        headings,
+        images,
+        imagesMissingAlt,
+        links,
+      }
+    },
+  })
+
+  if (!stats) return null
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200/80 bg-slate-50/80 px-3 py-1.5 text-[11px] text-slate-600">
+      <span>
+        <strong className="font-semibold text-slate-800">{stats.words}</strong> words
+      </span>
+      <span>
+        <strong className="font-semibold text-slate-800">{stats.characters}</strong> characters
+      </span>
+      <span>{stats.readingMinutes} min read</span>
+      <span>{stats.headings} headings</span>
+      <span>{stats.links} links</span>
+      <span>{stats.images} images</span>
+      {stats.h1 > 1 ? (
+        <span className="font-medium text-amber-700">⚠ {stats.h1} H1s — use only one</span>
+      ) : null}
+      {stats.imagesMissingAlt > 0 ? (
+        <span className="font-medium text-amber-700">⚠ {stats.imagesMissingAlt} image(s) missing alt</span>
+      ) : null}
+      {uploading ? <span className="font-medium text-violet-700">Uploading image…</span> : null}
     </div>
   )
 }
@@ -256,27 +418,12 @@ function htmlEquivalentForSync(a: string, b: string): boolean {
   return norm(a) === norm(b)
 }
 
-function ToolbarBtn({
-  label,
-  onClick,
-  active,
-}: {
-  label: string
-  onClick: () => void
-  active?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'rounded-lg px-2 py-1 text-xs font-semibold transition',
-        active
-          ? 'bg-violet-600 text-white shadow-sm'
-          : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50',
-      )}
-    >
-      {label}
-    </button>
-  )
+/** Light pretty-print so the HTML source view is readable. */
+function formatHtml(html: string): string {
+  return html
+    .replace(/></g, '>\n<')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\n')
 }

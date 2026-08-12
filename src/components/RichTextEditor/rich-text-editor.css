@@ -1,7 +1,11 @@
-/* TipTap / ProseMirror */
+/* TipTap / ProseMirror content styles */
 .rich-text-editor .ProseMirror {
   outline: none;
   min-height: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #0f172a;
 }
 
 .rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
@@ -12,82 +16,214 @@
   pointer-events: none;
 }
 
-.rich-text-editor .ProseMirror h2 {
-  font-size: 1.125rem;
-  font-weight: 700;
-  margin: 0.75rem 0 0.35rem;
+/* Headings — sized so the visual hierarchy matches the published page */
+.rich-text-editor .ProseMirror h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 1.1rem 0 0.6rem;
 }
 
-.rich-text-editor .ProseMirror h1 {
-  font-size: 1.35rem;
-  font-weight: 800;
-  margin: 0.85rem 0 0.4rem;
+.rich-text-editor .ProseMirror h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1rem 0 0.5rem;
 }
 
 .rich-text-editor .ProseMirror h3 {
-  font-size: 1rem;
+  font-size: 1.175rem;
   font-weight: 600;
-  margin: 0.5rem 0 0.25rem;
-}
-
-.rich-text-editor .ProseMirror h4,
-.rich-text-editor .ProseMirror h5,
-.rich-text-editor .ProseMirror h6 {
-  font-weight: 600;
-  margin: 0.4rem 0 0.2rem;
+  margin: 0.85rem 0 0.4rem;
 }
 
 .rich-text-editor .ProseMirror h4 {
-  font-size: 0.95rem;
-}
-.rich-text-editor .ProseMirror h5 {
-  font-size: 0.9rem;
-}
-.rich-text-editor .ProseMirror h6 {
-  font-size: 0.85rem;
-  color: #475569;
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin: 0.7rem 0 0.35rem;
 }
 
+.rich-text-editor .ProseMirror h5 {
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: 0.6rem 0 0.3rem;
+}
+
+.rich-text-editor .ProseMirror h6 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  margin: 0.55rem 0 0.3rem;
+  letter-spacing: 0.01em;
+}
+
+.rich-text-editor .ProseMirror p {
+  margin: 0.55rem 0;
+}
+
+.rich-text-editor .ProseMirror ul,
+.rich-text-editor .ProseMirror ol {
+  margin: 0.55rem 0;
+  padding-left: 1.5rem;
+}
+
+.rich-text-editor .ProseMirror ul {
+  list-style: disc;
+}
+
+.rich-text-editor .ProseMirror ol {
+  list-style: decimal;
+}
+
+.rich-text-editor .ProseMirror li {
+  margin: 0.2rem 0;
+}
+
+.rich-text-editor .ProseMirror li p {
+  margin: 0;
+}
+
+/* Task list */
+.rich-text-editor .ProseMirror ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+
+.rich-text-editor .ProseMirror ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.rich-text-editor .ProseMirror ul[data-type='taskList'] li > label {
+  margin-top: 0.2rem;
+}
+
+.rich-text-editor .ProseMirror ul[data-type='taskList'] input[type='checkbox'] {
+  accent-color: #7c3aed;
+  height: 0.9rem;
+  width: 0.9rem;
+}
+
+.rich-text-editor .ProseMirror blockquote {
+  border-left: 3px solid #c4b5fd;
+  background: #faf5ff;
+  border-radius: 0 0.5rem 0.5rem 0;
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.9rem;
+  color: #334155;
+}
+
+.rich-text-editor .ProseMirror code {
+  background: #f1f5f9;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  padding: 0.1rem 0.3rem;
+}
+
+.rich-text-editor .ProseMirror pre,
+.rich-text-editor .ProseMirror .rte-code-block {
+  background: #0f172a;
+  border-radius: 0.6rem;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  margin: 0.75rem 0;
+  overflow-x: auto;
+  padding: 0.75rem 0.9rem;
+}
+
+.rich-text-editor .ProseMirror pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+.rich-text-editor .ProseMirror hr {
+  border: none;
+  border-top: 2px solid #e2e8f0;
+  margin: 1.1rem 0;
+}
+
+.rich-text-editor .ProseMirror a,
+.rich-text-editor .ProseMirror .rte-link {
+  color: #7c3aed;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.rich-text-editor .ProseMirror mark {
+  border-radius: 0.2rem;
+  padding: 0.05rem 0.15rem;
+}
+
+/* Images */
+.rich-text-editor .ProseMirror img {
+  border-radius: 0.5rem;
+  height: auto;
+  margin: 0.6rem 0;
+  max-width: 100%;
+}
+
+.rich-text-editor .ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+/* Tables */
 .rich-text-editor .ProseMirror table {
   border-collapse: collapse;
+  margin: 0.75rem 0;
+  overflow: hidden;
+  table-layout: fixed;
   width: 100%;
-  margin: 0.5rem 0;
 }
 
 .rich-text-editor .ProseMirror th,
 .rich-text-editor .ProseMirror td {
   border: 1px solid #cbd5e1;
-  padding: 0.35rem 0.5rem;
+  box-sizing: border-box;
+  min-width: 2rem;
+  padding: 0.4rem 0.55rem;
+  position: relative;
   vertical-align: top;
 }
 
 .rich-text-editor .ProseMirror th {
   background: #f8fafc;
   font-weight: 600;
+  text-align: left;
 }
 
-.rich-text-editor .ProseMirror img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  margin: 0.5rem 0;
+.rich-text-editor .ProseMirror .selectedCell::after {
+  background: rgba(124, 58, 237, 0.12);
+  bottom: 0;
+  content: '';
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 2;
 }
 
-.rich-text-editor .ProseMirror u {
-  text-decoration: underline;
+.rich-text-editor .ProseMirror .column-resize-handle {
+  background: #7c3aed;
+  bottom: -2px;
+  pointer-events: none;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 3px;
 }
 
-.rich-text-editor .ProseMirror p {
-  margin: 0.35rem 0;
+.rich-text-editor .ProseMirror.resize-cursor {
+  cursor: col-resize;
 }
 
-.rich-text-editor .ProseMirror ul,
-.rich-text-editor .ProseMirror ol {
-  margin: 0.35rem 0;
-  padding-left: 1.25rem;
-}
-
-.rich-text-editor .ProseMirror a {
-  color: #7c3aed;
-  text-decoration: underline;
+/* Gap cursor for block nodes (images, tables, rules) */
+.rich-text-editor .ProseMirror-gapcursor:after {
+  border-top: 2px solid #7c3aed;
 }
