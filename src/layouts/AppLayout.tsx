@@ -1,11 +1,8 @@
-import { useNavigate } from 'react-router-dom'
-import { useCallback, useMemo, useState } from 'react'
-import { LayoutRouteGate } from '../components/LayoutRouteGate'
-import { logout } from '../services/auth/auth.service'
-import { isLayoutPathAllowed } from '../services/auth/routeAccess'
-import { Sidebar, type SidebarItem, SIDEBAR_COLLAPSED_KEY } from '../components/Sidebar'
-import { cn } from '../lib/ui'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
+  ArrowRightOnRectangleIcon,
+  Bars3Icon,
   BriefcaseIcon,
   BuildingOffice2Icon,
   ChartBarSquareIcon,
@@ -16,14 +13,24 @@ import {
   HomeModernIcon,
   MapIcon,
   MapPinIcon,
+  MoonIcon,
   PhotoIcon,
   QueueListIcon,
   SparklesIcon,
   Square3Stack3DIcon,
   StarIcon,
+  SunIcon,
   TicketIcon,
   UserGroupIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
+import { LayoutRouteGate } from '../components/LayoutRouteGate'
+import { getStoredUserInner, logout } from '../services/auth/auth.service'
+import { isLayoutPathAllowed } from '../services/auth/routeAccess'
+import { Sidebar, type SidebarItem } from '../components/Sidebar'
+import { useTheme } from '../lib/themeContext'
+import { cn } from '../lib/ui'
 
 const navItems: SidebarItem[] = [
   { to: '/layout/enquiry', label: 'Enquiry', icon: TicketIcon, section: 'Main' },
@@ -44,87 +51,181 @@ const navItems: SidebarItem[] = [
   { to: '/layout/state', label: 'States', icon: MapIcon, section: 'Locations' },
   { to: '/layout/city', label: 'Cities', icon: MapPinIcon, section: 'Locations' },
   { to: '/layout/micro-location', label: 'Micro-locations', icon: ClipboardDocumentListIcon, section: 'Locations' },
+  {
+    to: '/layout/priority/microlocation',
+    label: 'Micro-location priority',
+    icon: QueueListIcon,
+    section: 'Locations',
+  },
 ]
 
-function readSidebarCollapsed(): boolean {
-  try {
-    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1'
-  } catch {
-    return false
-  }
+function titleCase(segment: string) {
+  return segment
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (ch) => ch.toUpperCase())
+}
+
+/** Longest matching nav label for the current path, falling back to the last URL segment. */
+function useBreadcrumb(items: SidebarItem[]) {
+  const { pathname } = useLocation()
+  return useMemo(() => {
+    const current = pathname.replace(/\/+$/, '') || '/'
+    let best: SidebarItem | undefined
+    for (const item of items) {
+      const base = item.to.replace(/\/+$/, '')
+      if (current === base || current.startsWith(`${base}/`)) {
+        if (!best || base.length > best.to.replace(/\/+$/, '').length) best = item
+      }
+    }
+
+    const segments = current.split('/').filter(Boolean)
+    const last = segments[segments.length - 1] ?? ''
+    const isDetail =
+      best && current !== best.to.replace(/\/+$/, '') && !/^[0-9a-f]{8,}$/i.test(last)
+
+    if (best) {
+      return { title: best.label, detail: isDetail ? titleCase(last) : '' }
+    }
+    return { title: last ? titleCase(last) : 'Dashboard', detail: '' }
+  }, [pathname, items])
+}
+
+function initialsOf(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return 'SA'
+  return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase()
 }
 
 export function AppLayout() {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const items = useMemo(() => navItems.filter((item) => isLayoutPathAllowed(item.to)), [])
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const { theme, toggleTheme } = useTheme()
+  const crumb = useBreadcrumb(items)
 
-  const persistCollapsed = useCallback((next: boolean) => {
-    setSidebarCollapsed(next)
-    try {
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0')
-    } catch {
-      // ignore
+  const signOut = useCallback(() => {
+    logout()
+    navigate('/auth/login', { replace: true })
+  }, [navigate])
+
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+
+  // Close the drawer whenever the route changes (adjust state during render
+  // rather than in an effect, so the drawer never paints on the new page).
+  const [lastPath, setLastPath] = useState(pathname)
+  if (lastPath !== pathname) {
+    setLastPath(pathname)
+    if (drawerOpen) setDrawerOpen(false)
+  }
+
+  // Escape closes the drawer; lock body scroll while it is open.
+  useEffect(() => {
+    if (!drawerOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false)
     }
-  }, [])
+    document.addEventListener('keydown', onKey)
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = previous
+    }
+  }, [drawerOpen])
+
+  const user = getStoredUserInner()
+  const name = String(user?.name ?? user?.email ?? 'Spacehaat Admin')
+  const role = String(user?.role ?? 'admin')
 
   return (
-    <div className="min-h-screen text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-[1440px]">
-        <aside
-          className={cn(
-            'hidden shrink-0 overflow-hidden border-r border-slate-200/70 bg-white/60 backdrop-blur transition-[width] duration-200 ease-out md:sticky md:top-0 md:flex md:h-screen md:max-h-screen md:flex-col',
-            sidebarCollapsed ? 'w-[88px]' : 'w-72',
-          )}
-        >
-          <Sidebar
-            items={items}
-            collapsed={sidebarCollapsed}
-            onCollapsedChange={persistCollapsed}
-            enableCollapse
-          />
-        </aside>
+    <div className="app">
+      <Sidebar items={items} onLogout={signOut} />
 
-        {mobileOpen ? (
-          <div className="fixed inset-0 z-50 md:hidden">
-            <div
-              className="absolute inset-0 bg-slate-950/40"
-              onClick={() => setMobileOpen(false)}
+      {drawerOpen ? (
+        <>
+          <div className="drawer-bg" onClick={closeDrawer} aria-hidden="true" />
+          <div className="drawer" role="dialog" aria-modal="true" aria-label="Navigation">
+            <button
+              type="button"
+              className="icon-btn plain absolute right-3 top-3 z-10"
+              onClick={closeDrawer}
+              aria-label="Close navigation"
+            >
+              <XMarkIcon />
+            </button>
+            <Sidebar
+              items={items}
+              onNavigate={closeDrawer}
+              onLogout={signOut}
+              className="border-r-0"
             />
-            <div className="absolute inset-y-0 left-0 w-80 max-w-[85vw] bg-white/75 shadow-2xl backdrop-blur">
-              <Sidebar
-                items={items}
-                onNavigate={() => setMobileOpen(false)}
-                enableCollapse={false}
-              />
-            </div>
           </div>
-        ) : null}
+        </>
+      ) : null}
 
-        <main className="min-w-0 flex-1">
-          <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/60 backdrop-blur">
-            <div className="flex w-full items-center justify-between gap-3 px-4 py-3 md:justify-end">
-              <button
-                className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-white/70 hover:ring-1 hover:ring-slate-200 md:hidden"
-                onClick={() => setMobileOpen(true)}
-              >
-                ☰ Menu
-              </button>
-              <button
-                className="inline-flex items-center rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-white/70 hover:ring-1 hover:ring-slate-200"
-                onClick={() => {
-                  logout()
-                  navigate('/auth/login', { replace: true })
-                }}
-              >
-                Logout
-              </button>
-            </div>
-          </header>
-          <div className="p-4">
-            <LayoutRouteGate />
+      <div className="workspace">
+        <header className="topbar">
+          <button
+            type="button"
+            className="icon-btn nav-toggle"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open navigation"
+          >
+            <Bars3Icon />
+          </button>
+
+          <div className="min-w-0 flex items-center gap-2">
+            <span className="crumb">{crumb.title}</span>
+            {crumb.detail ? <span className="pill phone:hidden">{crumb.detail}</span> : null}
           </div>
+
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            >
+              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            </button>
+
+            <Menu as="div" className="relative">
+              <MenuButton
+                className="avatar h-[34px] w-[34px] cursor-pointer border border-line text-[12px]"
+                aria-label="Account menu"
+              >
+                {initialsOf(name)}
+              </MenuButton>
+              <MenuItems
+                anchor="bottom end"
+                className={cn(
+                  'z-[1400] mt-1 w-52 rounded-lg border border-line bg-surface p-1 shadow-xl',
+                  'focus:outline-none',
+                )}
+              >
+                <div className="border-b border-line-2 px-3 py-2">
+                  <div className="truncate text-[12.5px] font-semibold">{name}</div>
+                  <div className="truncate text-[11px] capitalize text-muted">{role}</div>
+                </div>
+                <MenuItem>
+                  <button
+                    type="button"
+                    onClick={signOut}
+                    className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] font-medium text-expired data-[focus]:bg-expired-soft"
+                  >
+                    <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                    Log out
+                  </button>
+                </MenuItem>
+              </MenuItems>
+            </Menu>
+          </div>
+        </header>
+
+        <main id="main">
+          <LayoutRouteGate />
         </main>
       </div>
     </div>

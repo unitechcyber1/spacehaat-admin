@@ -235,7 +235,7 @@ export function EnquiryFormPage() {
       }
     >
       <div className="mx-auto max-w-3xl space-y-6">
-        <section className="space-y-4 rounded-2xl bg-white/70 p-6 ring-1 ring-slate-200/70">
+        <section className="space-y-4 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70">
           {isEdit && detailQ.isLoading ? (
             <p className="text-sm text-slate-500">Loading lead…</p>
           ) : null}
@@ -363,7 +363,7 @@ export function EnquiryFormPage() {
         </section>
 
         {isEdit && loaded ? (
-          <section className="space-y-4 rounded-2xl bg-white/70 p-6 ring-1 ring-slate-200/70">
+          <section className="space-y-4 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-lg font-semibold text-slate-900">Lead stage</h3>
               <select
@@ -386,7 +386,7 @@ export function EnquiryFormPage() {
         ) : null}
 
         {isEdit && loaded ? (
-          <section className="space-y-4 rounded-2xl bg-white/70 p-6 ring-1 ring-slate-200/70">
+          <section className="space-y-4 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70">
             <h3 className="text-lg font-semibold text-slate-900">
               Notes <span className="text-slate-500">({notes.length})</span>
             </h3>

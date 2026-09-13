@@ -49,7 +49,7 @@ function normalizeImageOrders(images: { order?: number; image?: unknown }[]) {
 
 function section(title: string, children: React.ReactNode) {
   return (
-    <section className="space-y-4 rounded-2xl bg-white/70 p-6 ring-1 ring-slate-200/70">
+    <section className="space-y-4 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70">
       <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
       {children}
     </section>
@@ -512,13 +512,13 @@ export function CoworkingSpaceDetailPage() {
     >
       <form className="space-y-6" onSubmit={onSubmit}>
         <input ref={seoImgRef} type="file" accept="image/*" className="hidden" onChange={onSeoImagePick} />
-        <div className="flex flex-wrap gap-2 rounded-2xl bg-white/80 p-2 ring-1 ring-slate-200/70">
+        <div className="flex flex-wrap gap-2 rounded-2xl bg-surface p-2 ring-1 ring-slate-200/70">
           <button
             type="button"
             onClick={() => setDetailTab('coworking')}
             className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
               detailTab === 'coworking'
-                ? 'bg-violet-600 text-white shadow-sm'
+                ? 'bg-violet-600 text-on-brand shadow-sm'
                 : 'text-slate-700 hover:bg-slate-100'
             }`}
           >
@@ -529,7 +529,7 @@ export function CoworkingSpaceDetailPage() {
             onClick={() => setDetailTab('virtual')}
             className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
               detailTab === 'virtual'
-                ? 'bg-violet-600 text-white shadow-sm'
+                ? 'bg-violet-600 text-on-brand shadow-sm'
                 : 'text-slate-700 hover:bg-slate-100'
             }`}
           >

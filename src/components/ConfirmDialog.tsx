@@ -6,7 +6,9 @@ export function ConfirmDialog({
   title,
   description,
   confirmText = 'Confirm',
+  cancelText = 'Cancel',
   danger = false,
+  busy = false,
   onCancel,
   onConfirm,
 }: {
@@ -14,22 +16,34 @@ export function ConfirmDialog({
   title: string
   description?: string
   confirmText?: string
+  cancelText?: string
   danger?: boolean
+  busy?: boolean
   onCancel: () => void
   onConfirm: () => void
 }) {
   return (
-    <Modal open={open} onClose={onCancel} title={title} className="max-w-lg">
-      {description ? <p className="text-sm text-slate-600">{description}</p> : null}
-      <div className="mt-6 flex justify-end gap-2">
-        <Button onClick={onCancel} type="button" variant="secondary">
-          Cancel
-        </Button>
-        <Button onClick={onConfirm} type="button" variant={danger ? 'danger' : 'primary'}>
-          {confirmText}
-        </Button>
-      </div>
+    <Modal
+      open={open}
+      onClose={onCancel}
+      title={title}
+      size="sm"
+      footer={
+        <>
+          <Button onClick={onCancel} variant="ghost" disabled={busy}>
+            {cancelText}
+          </Button>
+          <Button
+            onClick={onConfirm}
+            variant={danger ? 'dangerSolid' : 'primary'}
+            disabled={busy}
+          >
+            {busy ? 'Working…' : confirmText}
+          </Button>
+        </>
+      }
+    >
+      {description ? <p className="text-[13px] leading-relaxed text-muted">{description}</p> : null}
     </Modal>
   )
 }
-

@@ -96,7 +96,7 @@ export function SeoListPage() {
           </Button>
         }
       >
-        <div className="mb-4 flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-sm ring-1 ring-slate-200/50">
+        <div className="mb-4 flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200/70 bg-surface p-4 shadow-sm ring-1 ring-slate-200/50">
           <div className="min-w-[200px] flex-1">
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="seo-search-path">
               Search path

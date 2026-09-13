@@ -44,7 +44,7 @@ function normalizeImageOrders(images: { order?: number; image?: unknown }[]) {
 
 function section(title: string, children: React.ReactNode) {
   return (
-    <section className="space-y-4 rounded-2xl bg-white/70 p-6 ring-1 ring-slate-200/70">
+    <section className="space-y-4 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70">
       <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
       {children}
     </section>

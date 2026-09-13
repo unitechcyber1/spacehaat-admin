@@ -249,8 +249,8 @@ export function OfficeSpaceListPage() {
           </Button>
         }
       >
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-gradient-to-br from-white via-sky-50/30 to-violet-50/25 p-1 shadow-md shadow-slate-200/50 ring-1 ring-white/80">
-          <div className="rounded-[0.875rem] bg-white/85 p-5 backdrop-blur-sm sm:p-6">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-surface p-1 shadow-md  ring-1 ring-line">
+          <div className="rounded-[0.875rem] bg-surface p-5 sm:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">Filters</h2>
@@ -261,7 +261,7 @@ export function OfficeSpaceListPage() {
               <Button
                 type="button"
                 variant="secondary"
-                className="shrink-0 border-slate-200/80 bg-white/90 text-slate-700 hover:bg-slate-50"
+                className="shrink-0 border-slate-200/80 bg-surface text-slate-700 hover:bg-slate-50"
                 onClick={() => {
                   setProductIdInput('')
                   setNameInput('')
@@ -419,7 +419,7 @@ export function OfficeSpaceListPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="secondary"
-              className="bg-white/90"
+              className="bg-surface"
               disabled={!canPrev}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
@@ -430,7 +430,7 @@ export function OfficeSpaceListPage() {
             </div>
             <Button
               variant="secondary"
-              className="bg-white/90"
+              className="bg-surface"
               disabled={!canNext}
               onClick={() => setPage((p) => p + 1)}
             >
@@ -441,7 +441,7 @@ export function OfficeSpaceListPage() {
 
         <div className="mt-5 overflow-x-auto">
           <Table>
-            <thead className="bg-gradient-to-r from-slate-50 to-sky-50/40">
+            <thead className="bg-surface-2">
               <tr>
                 <Th>
                   <button

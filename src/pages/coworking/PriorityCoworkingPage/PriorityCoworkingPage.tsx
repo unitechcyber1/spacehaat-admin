@@ -141,7 +141,7 @@ export function PriorityCoworkingPage() {
       title="Priority coworking spaces"
       description="Ordering for search and listings."
     >
-      <div className="mb-4 flex flex-wrap gap-3 rounded-2xl bg-white/60 p-4 ring-1 ring-slate-200/70">
+      <div className="mb-4 flex flex-wrap gap-3 rounded-2xl bg-surface p-4 ring-1 ring-slate-200/70">
         <div className="min-w-[200px]">
           <label className="text-xs font-semibold text-slate-700">Priority scope</label>
           <select

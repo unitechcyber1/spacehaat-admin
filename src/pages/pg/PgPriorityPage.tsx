@@ -303,7 +303,7 @@ export function PgPriorityPage() {
         </Button>
       }
     >
-      <div className="mb-4 flex flex-wrap gap-2 rounded-2xl bg-white/60 p-2 ring-1 ring-slate-200/70">
+      <div className="mb-4 flex flex-wrap gap-2 rounded-2xl bg-surface p-2 ring-1 ring-slate-200/70">
         {TABS.map((tab) => (
           <button
             key={tab.value}
@@ -311,7 +311,7 @@ export function PgPriorityPage() {
             className={cn(
               'rounded-xl px-4 py-2 text-sm font-medium transition',
               priorityType === tab.value
-                ? 'bg-violet-600 text-white shadow-sm'
+                ? 'bg-violet-600 text-on-brand shadow-sm'
                 : 'text-slate-600 hover:bg-white hover:ring-1 hover:ring-slate-200',
             )}
             onClick={() => {
@@ -324,7 +324,7 @@ export function PgPriorityPage() {
         ))}
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-4 rounded-2xl bg-white/60 p-4 ring-1 ring-slate-200/70">
+      <div className="mb-4 flex flex-wrap gap-4 rounded-2xl bg-surface p-4 ring-1 ring-slate-200/70">
         {(priorityType === 'location' || priorityType === 'micro_location') && (
           <div className="min-w-[220px] flex-1">
             <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -505,7 +505,7 @@ export function PgPriorityPage() {
         open={addOpen}
         onClose={() => setAddOpen(false)}
         title="Add PG to priority list"
-        className="max-w-3xl"
+        size="wide"
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-600">{addModalSubtitle}</p>

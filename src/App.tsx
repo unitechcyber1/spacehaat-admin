@@ -10,6 +10,7 @@ import { CountryPage } from './pages/locations/CountryPage'
 import { StatePage } from './pages/locations/StatePage'
 import { CityPage } from './pages/locations/CityPage'
 import { MicroLocationPage } from './pages/locations/MicroLocationPage'
+import { MicroLocationPriorityPage } from './pages/locations/MicroLocationPriorityPage/MicroLocationPriorityPage'
 import { BrandListPage } from './pages/brand/BrandListPage'
 import { BrandFormPage } from './pages/brand/BrandFormPage'
 import { CoworkingPlansPage } from './pages/coworking/CoworkingPlansPage/CoworkingPlansPage'
@@ -177,6 +178,7 @@ function App() {
         <Route path="state" element={<StatePage />} />
         <Route path="city" element={<CityPage />} />
         <Route path="micro-location" element={<MicroLocationPage />} />
+        <Route path="priority/microlocation" element={<MicroLocationPriorityPage />} />
         <Route path="categories" element={<PlaceholderPage title="Categories" />} />
         <Route path="coliving-plans" element={<PlaceholderPage title="Coliving plans" />} />
         <Route path="flat-plans" element={<PlaceholderPage title="Flat plans" />} />

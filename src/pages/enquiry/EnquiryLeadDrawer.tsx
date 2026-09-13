@@ -148,7 +148,7 @@ export function EnquiryLeadDrawer({ open, leadIdParam, onClose }: Props) {
     <div className="fixed inset-0 z-[80] flex justify-end">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]"
+        className="absolute inset-0 bg-[var(--scrim)]"
         aria-label="Close drawer"
         onClick={onClose}
       />

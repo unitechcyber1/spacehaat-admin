@@ -107,7 +107,7 @@ export function EditorToolbar({
   const headingLevels = full ? HEADING_LEVELS : ([2, 3] as const)
 
   return (
-    <div className="sticky top-0 z-20 flex flex-col gap-1 rounded-t-xl border-b border-slate-200/80 bg-slate-50/95 px-2 py-1.5 backdrop-blur">
+    <div className="sticky top-0 z-20 flex flex-col gap-1 rounded-t-xl border-b border-slate-200/80 bg-slate-50/95 px-2 py-1.5">
       <div className="flex flex-wrap items-center gap-1">
         <TextBtn
           label="Paragraph"
@@ -450,7 +450,7 @@ function Btn({
         'inline-flex h-8 w-8 items-center justify-center rounded-lg transition',
         'disabled:pointer-events-none disabled:opacity-40',
         active
-          ? 'bg-violet-600 text-white shadow-sm'
+          ? 'bg-violet-600 text-on-brand shadow-sm'
           : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100 hover:text-slate-900',
       )}
     >
@@ -485,7 +485,7 @@ function TextBtn({
         'inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-1.5 text-xs font-semibold transition',
         'disabled:pointer-events-none disabled:opacity-40',
         active
-          ? 'bg-violet-600 text-white shadow-sm'
+          ? 'bg-violet-600 text-on-brand shadow-sm'
           : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100 hover:text-slate-900',
       )}
     >
@@ -543,7 +543,7 @@ function ColorPopover({
         className={cn(
           'inline-flex h-8 items-center justify-center gap-0.5 rounded-lg bg-white px-1.5 text-slate-600 ring-1 ring-slate-200 transition',
           'hover:bg-slate-100 hover:text-slate-900 disabled:pointer-events-none disabled:opacity-40',
-          'data-[open]:bg-violet-600 data-[open]:text-white data-[open]:ring-violet-600',
+          'data-[open]:bg-violet-600 data-[open]:text-on-brand data-[open]:ring-violet-600',
         )}
       >
         {icon}

@@ -330,7 +330,7 @@ export function SpacehaatUserAccessPage() {
       {userQ.isLoading ? <p className="text-sm text-slate-500">Loading user…</p> : null}
       {userQ.isError ? <p className="text-sm text-red-600">Failed to load user.</p> : null}
       {user ? (
-        <div className="space-y-8 rounded-2xl bg-white/70 p-4 ring-1 ring-slate-200/70 sm:p-6">
+        <div className="space-y-8 rounded-2xl bg-surface p-4 ring-1 ring-slate-200/70 sm:p-6">
           <h2 className="text-lg font-semibold text-slate-900">{String(user.name ?? '')}</h2>
 
           <section>

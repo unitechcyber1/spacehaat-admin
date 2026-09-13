@@ -101,7 +101,7 @@ const fieldClass =
   'mt-1 w-full rounded-xl border-0 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm ring-1 ring-slate-200/90 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500'
 
 const fileInputClass =
-  'mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-violet-700'
+  'mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-on-brand hover:file:bg-violet-700'
 
 export function BlogFormPage() {
   const { blogId } = useParams<{ blogId: string }>()
@@ -287,7 +287,7 @@ export function BlogFormPage() {
         <p className="text-sm text-rose-600">Could not load blog.</p>
       ) : showForm ? (
         <form onSubmit={onSubmit} className="max-w-6xl space-y-8">
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Content</h3>
             <div>
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="blog-heading">
@@ -314,7 +314,7 @@ export function BlogFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Slug update</h3>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1">
@@ -340,7 +340,7 @@ export function BlogFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">SEO details</h3>
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
@@ -408,7 +408,7 @@ export function BlogFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Twitter</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -453,7 +453,7 @@ export function BlogFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Open Graph</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -498,7 +498,7 @@ export function BlogFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Select blog type</h3>
             <div className="max-w-sm">
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="blog-type">
@@ -521,7 +521,7 @@ export function BlogFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">News section</h3>
             <div className="grid gap-4 sm:grid-cols-3">
               <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
@@ -565,7 +565,7 @@ export function BlogFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Cover picture</h3>
             <input
               type="file"

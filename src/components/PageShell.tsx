@@ -5,25 +5,24 @@ export function PageShell({
   description,
   actions,
   children,
+  className,
 }: {
   title: string
   description?: string
   actions?: React.ReactNode
   children: React.ReactNode
+  className?: string
 }) {
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
-          {description ? (
-            <p className="mt-1 text-sm text-slate-600">{description}</p>
-          ) : null}
+    <div className={cn('screen', className)}>
+      <div className="page-head">
+        <div className="min-w-0">
+          <h1>{title}</h1>
+          {description ? <p className="sub">{description}</p> : null}
         </div>
-        {actions ? <div className={cn('flex items-center gap-2')}>{actions}</div> : null}
+        {actions ? <div className="actions">{actions}</div> : null}
       </div>
       {children}
     </div>
   )
 }
-

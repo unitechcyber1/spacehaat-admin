@@ -94,7 +94,7 @@ export function SpacehaatUserFormPage() {
         </Button>
       }
     >
-      <div className="mx-auto max-w-lg rounded-2xl bg-white/70 p-6 ring-1 ring-slate-200/70">
+      <div className="mx-auto max-w-lg rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70">
         {isEdit && detailQ.isLoading ? <p className="text-sm text-slate-500">Loading…</p> : null}
         {isEdit && detailQ.isError ? <p className="text-sm text-red-600">Could not load user.</p> : null}
         <form onSubmit={onSubmit} className="space-y-4">

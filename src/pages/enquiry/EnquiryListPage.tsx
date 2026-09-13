@@ -3,20 +3,32 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
+  AdjustmentsHorizontalIcon,
+  ArrowDownTrayIcon,
+  ArrowPathIcon,
+  CalendarDaysIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  FunnelIcon,
+  MagnifyingGlassIcon,
   PencilSquareIcon,
+  Squares2X2Icon,
   TrashIcon,
-  ArrowDownTrayIcon,
+  UserCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { Input } from '../../components/Input'
+import { ListPagination } from '../../components/ListPagination'
 import { PageShell } from '../../components/PageShell'
-import { Table, Td, Th, Tr } from '../../components/Table'
 import { cn } from '../../lib/ui'
+import { pageRange } from '../../lib/pagination'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
-import { canCreateManualLead, getStoredUserInner, isStoredUserAdmin } from '../../services/auth/auth.service'
+import {
+  canCreateManualLead,
+  getStoredUserInner,
+  isStoredUserAdmin,
+} from '../../services/auth/auth.service'
 import {
   deleteLead,
   deleteManyLeads,
@@ -37,13 +49,41 @@ import {
   SEAT_FILTER_OPTIONS,
   SPACE_TYPE_FILTER,
 } from './enquiryConstants'
-import { applyDatePreset, defaultThisMonthRange } from './enquiryDateRange'
+import { applyDatePreset } from './enquiryDateRange'
 import { EnquiryLeadDrawer } from './EnquiryLeadDrawer'
 
-const filterSelectClass =
-  'w-full rounded-xl border-0 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200/90 transition focus:outline-none focus:ring-2 focus:ring-violet-500'
+const STAGE_PILLS = LEAD_STAGES.filter((s) => s.value !== 'all')
 
-const filterLabelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500'
+/**
+ * The CRM has one search box because its API accepts a single `search` param.
+ * This API takes discrete `name` / `email` / `phone_number` fields, so the typed
+ * query is routed to whichever field it looks like, and the choice is surfaced
+ * to the user as a badge inside the field.
+ */
+type SearchMode = 'name' | 'email' | 'phone'
+
+/** Raw shape from `admin/userList`; the whole record is echoed back as `marketingUser`. */
+type SalesUserRecord = {
+  _id?: string
+  id?: string
+  name?: string
+  isMarketing?: boolean
+  lead_source?: string
+}
+
+function classifySearch(raw: string): SearchMode {
+  const q = raw.trim()
+  if (!q) return 'name'
+  if (q.includes('@')) return 'email'
+  if (/^\d{4,}$/.test(q.replace(/[\s\-+()]/g, ''))) return 'phone'
+  return 'name'
+}
+
+const SEARCH_MODE_LABEL: Record<SearchMode, string> = {
+  name: 'Name',
+  email: 'Email',
+  phone: 'Phone',
+}
 
 function stripDisplayPhone(p: string | undefined) {
   if (!p) return ''
@@ -98,8 +138,20 @@ function latestNotePreview(lead: EnquiryLead) {
   return { text, count: notes.length, author }
 }
 
+function apiErrorMessage(e: unknown, fallback: string): string {
+  if (typeof e === 'object' && e !== null) {
+    const apiMessage = (e as { response?: { data?: { message?: unknown } } }).response?.data
+      ?.message
+    if (typeof apiMessage === 'string' && apiMessage) return apiMessage
+    const message = (e as { message?: unknown }).message
+    if (typeof message === 'string' && message) return message
+  }
+  return fallback
+}
+
+/** Reads the stored profile once at mount; `useState` initialiser keeps it out of render. */
 function useScopeDefaults() {
-  return useMemo(() => {
+  const [scope] = useState(() => {
     const inner = getStoredUserInner()
     if (!inner) {
       return { userJson: '', marketingJson: '', isAdmin: false }
@@ -118,7 +170,8 @@ function useScopeDefaults() {
       return { userJson: '', marketingJson: JSON.stringify(inner), isAdmin: false }
     }
     return { userJson: '', marketingJson: '', isAdmin: false }
-  }, [])
+  })
+  return scope
 }
 
 export function EnquiryListPage() {
@@ -133,6 +186,7 @@ export function EnquiryListPage() {
   const [sortBy, setSortBy] = useState('')
   const [orderBy, setOrderBy] = useState('')
 
+  const [searchIn, setSearchIn] = useState('')
   const [spaceType, setSpaceType] = useState('')
   const [leadStage, setLeadStage] = useState('all')
   const [interestedIn, setInterestedIn] = useState('all')
@@ -141,28 +195,22 @@ export function EnquiryListPage() {
   const [datePreset, setDatePreset] = useState('thisMonth')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
-
-  const [nameIn, setNameIn] = useState('')
-  const [emailIn, setEmailIn] = useState('')
-  const [phoneIn, setPhoneIn] = useState('')
   const [cityIn, setCityIn] = useState('')
   const [locationIn, setLocationIn] = useState('')
   const [addressIn, setAddressIn] = useState('')
+  const [salesFilterUserId, setSalesFilterUserId] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
-  const debName = useDebouncedValue(nameIn, 800)
-  const debEmail = useDebouncedValue(emailIn, 800)
-  const debPhone = useDebouncedValue(phoneIn, 800)
-  const debCity = useDebouncedValue(cityIn, 800)
-  const debLoc = useDebouncedValue(locationIn, 800)
-  const debAddr = useDebouncedValue(addressIn, 800)
+  const debSearch = useDebouncedValue(searchIn, 400)
+  const debCity = useDebouncedValue(cityIn, 500)
+  const debLoc = useDebouncedValue(locationIn, 500)
+  const debAddr = useDebouncedValue(addressIn, 500)
 
-  const initialRange = useMemo(() => defaultThisMonthRange(), [])
-  const [startDate, setStartDate] = useState(initialRange.startDate)
-  const [endDate, setEndDate] = useState(initialRange.endDate)
+  const liveSearchMode = classifySearch(searchIn)
+  const searchMode = classifySearch(debSearch)
 
   const [adminUserJson, setAdminUserJson] = useState('')
   const [adminMarketingJson, setAdminMarketingJson] = useState('')
-  const [salesFilterUserId, setSalesFilterUserId] = useState('')
 
   const [expandedKey, setExpandedKey] = useState<string | null>(null)
   const [drawerLeadId, setDrawerLeadId] = useState<string | null>(null)
@@ -180,7 +228,7 @@ export function EnquiryListPage() {
   })
 
   const salesUsers = useMemo(() => {
-    const rows = (usersQ.data?.data ?? []) as { _id?: string; id?: string; name?: string; isMarketing?: boolean; lead_source?: string }[]
+    const rows = (usersQ.data?.data ?? []) as SalesUserRecord[]
     return rows.map((u) => ({
       id: String(u.id ?? u._id ?? ''),
       name: String(u.name ?? ''),
@@ -188,6 +236,20 @@ export function EnquiryListPage() {
       lead_source: u.lead_source,
     }))
   }, [usersQ.data?.data])
+
+  /** Date range is derived, so custom dates apply as soon as they are picked. */
+  const { startDate, endDate } = useMemo(() => {
+    if (datePreset === 'custom') {
+      const s = customStart ? new Date(`${customStart}T00:00:00`) : null
+      const e = customEnd ? new Date(`${customEnd}T23:59:59.999`) : null
+      if (s && e && s > e) return { startDate: '', endDate: '' }
+      return {
+        startDate: s ? s.toISOString() : '',
+        endDate: e ? e.toISOString() : '',
+      }
+    }
+    return applyDatePreset(datePreset) ?? { startDate: '', endDate: '' }
+  }, [datePreset, customStart, customEnd])
 
   const listParams = useMemo(() => {
     let space_type = ''
@@ -200,22 +262,20 @@ export function EnquiryListPage() {
       space_type = spaceType.trim().toLowerCase()
     }
 
-    const lead_stage =
-      leadStage === 'all' ? '' : leadStage.trim().toLocaleLowerCase()
-
-    const interested_in =
-      interestedIn === 'all' ? '' : interestedIn.trim().toLocaleLowerCase()
+    const lead_stage = leadStage === 'all' ? '' : leadStage.trim().toLocaleLowerCase()
+    const interested_in = interestedIn === 'all' ? '' : interestedIn.trim().toLocaleLowerCase()
 
     let noOfSeats = ''
     if (seatBucket && seatBucket !== 'all') {
       noOfSeats = encodeURIComponent(JSON.stringify([seatBucket]))
     }
 
-    const budget =
-      budgetPick === 'all' || !budgetPick ? [] : [budgetPick]
+    const budget = budgetPick === 'all' || !budgetPick ? [] : [budgetPick]
 
     const user = isAdmin ? adminUserJson || '' : scope.userJson
     const marketingUser = isAdmin ? adminMarketingJson || '' : scope.marketingJson
+
+    const q = debSearch.trim()
 
     const p: Record<string, unknown> = {
       limit: pageSize,
@@ -223,9 +283,9 @@ export function EnquiryListPage() {
       groupBy: 'user',
       sortBy,
       orderBy,
-      name: debName.trim().toLowerCase(),
-      email: debEmail.trim().toLowerCase(),
-      phone_number: debPhone.trim(),
+      name: searchMode === 'name' ? q.toLowerCase() : '',
+      email: searchMode === 'email' ? q.toLowerCase() : '',
+      phone_number: searchMode === 'phone' ? q : '',
       city: debCity.trim(),
       location: debLoc.trim(),
       address: debAddr.trim(),
@@ -259,9 +319,8 @@ export function EnquiryListPage() {
     budgetPick,
     startDate,
     endDate,
-    debName,
-    debEmail,
-    debPhone,
+    debSearch,
+    searchMode,
     debCity,
     debLoc,
     debAddr,
@@ -272,6 +331,17 @@ export function EnquiryListPage() {
     scope.marketingJson,
   ])
 
+  /**
+   * Reset to page 1 whenever the result set changes. Adjusting state during
+   * render (rather than in an effect) avoids a wasted fetch on the stale page.
+   */
+  const filterKey = JSON.stringify({ ...listParams, page: 0 })
+  const [lastFilterKey, setLastFilterKey] = useState(filterKey)
+  if (lastFilterKey !== filterKey) {
+    setLastFilterKey(filterKey)
+    if (page !== 1) setPage(1)
+  }
+
   const listQ = useQuery({
     queryKey: ['enquiries', listParams],
     queryFn: () => getEnquiries(listParams),
@@ -280,6 +350,7 @@ export function EnquiryListPage() {
 
   const rows = (listQ.data?.data ?? []) as GroupedEnquiryRow[]
   const total = listQ.data?.totalRecords ?? 0
+  const { currentPage, pageCount, rangeStart, rangeEnd } = pageRange(page, pageSize, total)
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteLead(id),
@@ -288,7 +359,7 @@ export function EnquiryListPage() {
       setConfirmDelete(null)
       qc.invalidateQueries({ queryKey: ['enquiries'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Delete failed'),
+    onError: (e) => toast.error(apiErrorMessage(e, 'Delete failed')),
   })
 
   const bulkDelMut = useMutation({
@@ -299,7 +370,7 @@ export function EnquiryListPage() {
       setSelectedIds([])
       qc.invalidateQueries({ queryKey: ['enquiries'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Bulk delete failed'),
+    onError: (e) => toast.error(apiErrorMessage(e, 'Bulk delete failed')),
   })
 
   const exportMut = useMutation({
@@ -313,7 +384,7 @@ export function EnquiryListPage() {
       URL.revokeObjectURL(url)
       toast.success('Export started')
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Export failed'),
+    onError: (e) => toast.error(apiErrorMessage(e, 'Export failed')),
   })
 
   const grantMut = useMutation({
@@ -324,7 +395,7 @@ export function EnquiryListPage() {
       setSelectedIds([])
       qc.invalidateQueries({ queryKey: ['enquiries'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Grant failed'),
+    onError: (e) => toast.error(apiErrorMessage(e, 'Grant failed')),
   })
 
   const removeMut = useMutation({
@@ -335,23 +406,36 @@ export function EnquiryListPage() {
       setSelectedIds([])
       qc.invalidateQueries({ queryKey: ['enquiries'] })
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Remove failed'),
+    onError: (e) => toast.error(apiErrorMessage(e, 'Remove failed')),
   })
 
+  const advancedActiveCount = [
+    interestedIn !== 'all',
+    seatBucket !== 'all',
+    budgetPick !== 'all',
+    Boolean(cityIn),
+    Boolean(locationIn),
+    Boolean(addressIn),
+  ].filter(Boolean).length
+
+  const hasActiveFilters =
+    Boolean(searchIn) ||
+    Boolean(spaceType) ||
+    leadStage !== 'all' ||
+    datePreset !== 'thisMonth' ||
+    Boolean(salesFilterUserId) ||
+    advancedActiveCount > 0
+
   function resetFilters() {
-    setPage(1)
+    setSearchIn('')
     setSpaceType('')
     setLeadStage('all')
     setInterestedIn('all')
     setSeatBucket('all')
     setBudgetPick('all')
     setDatePreset('thisMonth')
-    const r = defaultThisMonthRange()
-    setStartDate(r.startDate)
-    setEndDate(r.endDate)
-    setNameIn('')
-    setEmailIn('')
-    setPhoneIn('')
+    setCustomStart('')
+    setCustomEnd('')
     setCityIn('')
     setLocationIn('')
     setAddressIn('')
@@ -362,30 +446,8 @@ export function EnquiryListPage() {
     setOrderBy('')
   }
 
-  function onDatePresetChange(preset: string) {
-    setDatePreset(preset)
-    const r = applyDatePreset(preset)
-    if (r) {
-      setStartDate(r.startDate)
-      setEndDate(r.endDate)
-      setPage(1)
-    }
-  }
-
-  function applyCustomRange() {
-    if (!customStart || !customEnd) {
-      toast.error('Pick start and end dates')
-      return
-    }
-    const a = new Date(customStart)
-    const b = new Date(customEnd)
-    if (a > b) {
-      toast.error('Start must be before end')
-      return
-    }
-    setStartDate(a.toISOString())
-    setEndDate(b.toISOString())
-    setPage(1)
+  function toggleStage(value: string) {
+    setLeadStage((prev) => (prev === value ? 'all' : value))
   }
 
   function toggleSort(col: string) {
@@ -398,7 +460,6 @@ export function EnquiryListPage() {
       setSortBy('')
       setOrderBy('')
     }
-    setPage(1)
   }
 
   function toggleSelectAll() {
@@ -418,12 +479,10 @@ export function EnquiryListPage() {
     if (!uid) {
       setAdminUserJson('')
       setAdminMarketingJson('')
-      setPage(1)
       return
     }
-    const full = (usersQ.data?.data ?? []).find((x: any) => String(x.id ?? x._id) === uid) as
-      | { _id?: string; id?: string; isMarketing?: boolean; lead_source?: string }
-      | undefined
+    const rawUsers = (usersQ.data?.data ?? []) as SalesUserRecord[]
+    const full = rawUsers.find((x) => String(x.id ?? x._id) === uid)
     if (!full) {
       setAdminUserJson('')
       setAdminMarketingJson('')
@@ -434,126 +493,97 @@ export function EnquiryListPage() {
       setAdminMarketingJson(JSON.stringify(full))
     } else {
       setAdminMarketingJson('')
-      setAdminUserJson(
-        JSON.stringify({ _id: full._id ?? full.id, lead_source: full.lead_source }),
-      )
+      setAdminUserJson(JSON.stringify({ _id: full._id ?? full.id, lead_source: full.lead_source }))
     }
-    setPage(1)
   }
 
   const allSelected = rows.length > 0 && selectedIds.length === rows.length
   const colCount = isAdmin ? 14 : 13
+  const dateLabel = DATE_PRESETS.find((d) => d.value === datePreset)?.label ?? 'This Month'
 
   return (
     <PageShell
       title="Enquiries"
       description="Grouped leads (by user), filters, drawer notes, and bulk actions for admins."
       actions={
-        <div className="flex flex-wrap gap-2">
+        <>
           {showAdd ? (
-            <Button type="button" variant="primary" onClick={() => navigate('/layout/enquiry/add')}>
+            <Button variant="primary" onClick={() => navigate('/layout/enquiry/add')}>
               Add lead
             </Button>
           ) : null}
           {isAdmin ? (
-            <>
-              <Button type="button" variant="secondary" disabled={exportMut.isPending} onClick={() => exportMut.mutate()}>
-                <ArrowDownTrayIcon className="mr-1 inline h-4 w-4" aria-hidden />
-                Export CSV
-              </Button>
-            </>
+            <Button disabled={exportMut.isPending} onClick={() => exportMut.mutate()}>
+              <ArrowDownTrayIcon />
+              Export CSV
+            </Button>
           ) : null}
-        </div>
+        </>
       }
     >
-      <div className="space-y-4 rounded-2xl bg-white/70 p-4 ring-1 ring-slate-200/70 sm:p-6">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-          <div>
-            <label className={filterLabelClass}>Space type</label>
-            <select
-              className={filterSelectClass}
-              value={spaceType}
-              onChange={(e) => {
-                setSpaceType(e.target.value)
-                setPage(1)
-              }}
+      {/* ---------- summary strip with stage pills ---------- */}
+      <div className="card leads-summary">
+        <div className="leads-stat">
+          <b className="tnum">{listQ.isLoading ? '—' : total}</b>
+          <span>{hasActiveFilters ? 'Matching leads' : 'Total leads'}</span>
+        </div>
+        <div className="leads-stat">
+          <b className="!text-[15px]">{dateLabel}</b>
+          <span>Date range</span>
+        </div>
+        <div className="leads-stage-pills">
+          {STAGE_PILLS.map((s) => (
+            <button
+              key={s.value}
+              type="button"
+              className={cn('lead-stage-pill', leadStage === s.value && 'on')}
+              onClick={() => toggleStage(s.value)}
+              aria-pressed={leadStage === s.value}
             >
-              <option value="">All</option>
-              {SPACE_TYPE_FILTER.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={filterLabelClass}>City</label>
-            <Input value={cityIn} onChange={(e) => setCityIn(e.target.value)} placeholder="City" />
-          </div>
-          <div>
-            <label className={filterLabelClass}>Location</label>
-            <Input value={locationIn} onChange={(e) => setLocationIn(e.target.value)} placeholder="Location" />
-          </div>
-          <div>
-            <label className={filterLabelClass}>Lead stage</label>
-            <select
-              className={filterSelectClass}
-              value={leadStage}
-              onChange={(e) => {
-                setLeadStage(e.target.value)
-                setPage(1)
-              }}
-            >
-              {LEAD_STAGES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={filterLabelClass}>Seats</label>
-            <select
-              className={filterSelectClass}
-              value={seatBucket}
-              onChange={(e) => {
-                setSeatBucket(e.target.value)
-                setPage(1)
-              }}
-            >
-              {SEAT_FILTER_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={filterLabelClass}>Budget</label>
-            <select
-              className={filterSelectClass}
-              value={budgetPick}
-              onChange={(e) => {
-                setBudgetPick(e.target.value)
-                setPage(1)
-              }}
-            >
-              {BUDGET_FILTER_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ---------- search + filters ---------- */}
+      <div className="card leads-filter-card">
+        <div className="leads-search-wrap">
+          <MagnifyingGlassIcon />
+          <input
+            type="search"
+            className="leads-search-input"
+            placeholder="Search by name, email, or phone…"
+            value={searchIn}
+            onChange={(e) => setSearchIn(e.target.value)}
+            aria-label="Search enquiries"
+          />
+          <div className="leads-search-tools">
+            {searchIn ? (
+              <>
+                <span className="leads-search-mode">{SEARCH_MODE_LABEL[liveSearchMode]}</span>
+                <button
+                  type="button"
+                  className="leads-search-clear"
+                  onClick={() => setSearchIn('')}
+                  aria-label="Clear search"
+                >
+                  <XMarkIcon />
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-          <div>
-            <label className={filterLabelClass}>Date range</label>
+        <div className="leads-filter-row">
+          <label className="leads-filter-field">
+            <span>
+              <CalendarDaysIcon /> Date
+            </span>
             <select
-              className={filterSelectClass}
+              className="inp"
               value={datePreset}
-              onChange={(e) => onDatePresetChange(e.target.value)}
+              onChange={(e) => setDatePreset(e.target.value)}
             >
               {DATE_PRESETS.map((d) => (
                 <option key={d.value} value={d.value}>
@@ -561,29 +591,54 @@ export function EnquiryListPage() {
                 </option>
               ))}
             </select>
-          </div>
+          </label>
+
           {datePreset === 'custom' ? (
             <>
-              <div>
-                <label className={filterLabelClass}>Start</label>
-                <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
-              </div>
-              <div>
-                <label className={filterLabelClass}>End</label>
-                <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
-              </div>
-              <div className="flex items-end">
-                <Button type="button" variant="secondary" onClick={applyCustomRange}>
-                  Apply dates
-                </Button>
-              </div>
+              <label className="leads-filter-field">
+                <span>From</span>
+                <input
+                  type="date"
+                  className="inp"
+                  value={customStart}
+                  max={customEnd || undefined}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                />
+              </label>
+              <label className="leads-filter-field">
+                <span>To</span>
+                <input
+                  type="date"
+                  className="inp"
+                  value={customEnd}
+                  min={customStart || undefined}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                />
+              </label>
             </>
           ) : null}
+
+          <label className="leads-filter-field">
+            <span>
+              <Squares2X2Icon /> Space type
+            </span>
+            <select className="inp" value={spaceType} onChange={(e) => setSpaceType(e.target.value)}>
+              <option value="">All</option>
+              {SPACE_TYPE_FILTER.filter((s) => s.value !== 'All').map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           {isAdmin ? (
-            <div>
-              <label className={filterLabelClass}>Filter by sales user</label>
+            <label className="leads-filter-field">
+              <span>
+                <UserCircleIcon /> Sales user
+              </span>
               <select
-                className={filterSelectClass}
+                className="inp"
                 value={salesFilterUserId}
                 onChange={(e) => onPickSalesUser(e.target.value)}
               >
@@ -594,65 +649,114 @@ export function EnquiryListPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            </label>
           ) : null}
-          <div>
-            <label className={filterLabelClass}>Interested in</label>
-            <select
-              className={filterSelectClass}
-              value={interestedIn}
-              onChange={(e) => {
-                setInterestedIn(e.target.value)
-                setPage(1)
-              }}
+
+          <div className="leads-filter-actions">
+            <Button
+              size="sm"
+              variant={showAdvanced ? 'primary' : 'secondary'}
+              onClick={() => setShowAdvanced((s) => !s)}
+              aria-expanded={showAdvanced}
             >
-              {INTERESTED_IN_FILTER.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+              <AdjustmentsHorizontalIcon />
+              More filters
+              {advancedActiveCount ? ` (${advancedActiveCount})` : ''}
+            </Button>
+            {hasActiveFilters ? (
+              <Button size="sm" onClick={resetFilters}>
+                <ArrowPathIcon />
+                Clear filters
+              </Button>
+            ) : null}
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <label className={filterLabelClass}>Name</label>
-            <Input value={nameIn} onChange={(e) => setNameIn(e.target.value)} placeholder="Search name" />
+        {showAdvanced ? (
+          <div className="leads-filter-row">
+            <label className="leads-filter-field">
+              <span>
+                <FunnelIcon /> Interested in
+              </span>
+              <select
+                className="inp"
+                value={interestedIn}
+                onChange={(e) => setInterestedIn(e.target.value)}
+              >
+                {INTERESTED_IN_FILTER.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="leads-filter-field">
+              <span>Seats</span>
+              <select
+                className="inp"
+                value={seatBucket}
+                onChange={(e) => setSeatBucket(e.target.value)}
+              >
+                {SEAT_FILTER_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="leads-filter-field">
+              <span>Budget</span>
+              <select
+                className="inp"
+                value={budgetPick}
+                onChange={(e) => setBudgetPick(e.target.value)}
+              >
+                {BUDGET_FILTER_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="leads-filter-field">
+              <span>City</span>
+              <input
+                className="inp"
+                value={cityIn}
+                onChange={(e) => setCityIn(e.target.value)}
+                placeholder="Any city"
+              />
+            </label>
+            <label className="leads-filter-field">
+              <span>Location</span>
+              <input
+                className="inp"
+                value={locationIn}
+                onChange={(e) => setLocationIn(e.target.value)}
+                placeholder="Any micro-location"
+              />
+            </label>
+            <label className="leads-filter-field">
+              <span>Address</span>
+              <input
+                className="inp"
+                value={addressIn}
+                onChange={(e) => setAddressIn(e.target.value)}
+                placeholder="Any address"
+              />
+            </label>
           </div>
-          <div>
-            <label className={filterLabelClass}>Phone</label>
-            <Input value={phoneIn} onChange={(e) => setPhoneIn(e.target.value)} placeholder="Search phone" />
-          </div>
-          <div>
-            <label className={filterLabelClass}>Email</label>
-            <Input value={emailIn} onChange={(e) => setEmailIn(e.target.value)} placeholder="Search email" />
-          </div>
-        </div>
-
-        <div>
-          <label className={filterLabelClass}>Address</label>
-          <Input value={addressIn} onChange={(e) => setAddressIn(e.target.value)} placeholder="Search address" />
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="ghost" onClick={resetFilters}>
-            Reset filters
-          </Button>
-        </div>
+        ) : null}
 
         {isAdmin && selectedIds.length > 0 ? (
-          <div className="flex flex-wrap items-end gap-3 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200/80">
-            <div className="min-w-[200px] flex-1">
-              <label className={filterLabelClass}>Grant / remove access for users</label>
+          <div className="leads-bulkbar">
+            <label className="leads-filter-field !max-w-[240px]">
+              <span>Grant / remove access</span>
               <select
                 multiple
-                className={cn(filterSelectClass, 'min-h-[96px]')}
+                className="inp !h-auto min-h-[88px]"
                 value={grantUserIds}
-                onChange={(e) => {
-                  const opts = [...e.target.selectedOptions].map((o) => o.value)
-                  setGrantUserIds(opts)
-                }}
+                onChange={(e) => setGrantUserIds([...e.target.selectedOptions].map((o) => o.value))}
               >
                 {salesUsers.map((u) => (
                   <option key={u.id} value={u.id}>
@@ -660,256 +764,319 @@ export function EnquiryListPage() {
                   </option>
                 ))}
               </select>
-            </div>
-            <Button type="button" variant="secondary" disabled={!grantUserIds.length || grantMut.isPending} onClick={() => grantMut.mutate()}>
+            </label>
+            <Button
+              size="sm"
+              disabled={!grantUserIds.length || grantMut.isPending}
+              onClick={() => grantMut.mutate()}
+            >
               Grant access
             </Button>
-            <Button type="button" variant="secondary" disabled={!grantUserIds.length || removeMut.isPending} onClick={() => removeMut.mutate()}>
+            <Button
+              size="sm"
+              disabled={!grantUserIds.length || removeMut.isPending}
+              onClick={() => removeMut.mutate()}
+            >
               Remove access
             </Button>
-            <Button type="button" variant="danger" onClick={() => setConfirmBulkDelete(true)}>
-              Delete selected
+            <Button size="sm" variant="danger" onClick={() => setConfirmBulkDelete(true)}>
+              Delete selected ({selectedIds.length})
             </Button>
           </div>
         ) : null}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl bg-white/70 ring-1 ring-slate-200/70">
-        <Table>
-          <thead>
-            <Tr>
-              {isAdmin ? (
-                <Th className="w-10">
-                  <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} aria-label="Select all" />
-                </Th>
-              ) : null}
-              <Th>
-                <button type="button" className="font-semibold" onClick={() => toggleSort('added_on')}>
-                  Date {sortBy === 'added_on' ? (orderBy === '1' ? '↑' : '↓') : ''}
-                </button>
-              </Th>
-              <Th>Space</Th>
-              <Th>Interested</Th>
-              <Th>City</Th>
-              <Th>Location</Th>
-              <Th>Seats</Th>
-              <Th>Name</Th>
-              <Th>Stage</Th>
-              <Th>Note</Th>
-              <Th>Phone</Th>
-              <Th>Email</Th>
-              <Th>Budget</Th>
-              <Th className="text-right">Actions</Th>
-            </Tr>
-          </thead>
-          <tbody>
+      {/* ---------- results ---------- */}
+      <div className="card leads-table-card">
+        <div className="leads-table-meta">
+          <span className="leads-result-count">
             {listQ.isLoading ? (
-              <Tr>
-                <Td colSpan={colCount} className="py-10 text-center text-sm text-slate-500">
-                  Loading enquiries…
-                </Td>
-              </Tr>
-            ) : null}
-            {listQ.isError ? (
-              <Tr>
-                <Td colSpan={colCount} className="py-10 text-center text-sm text-red-600">
-                  Failed to load enquiries.
-                </Td>
-              </Tr>
-            ) : null}
-            {!listQ.isLoading && !rows.length ? (
-              <Tr>
-                <Td colSpan={colCount} className="py-10 text-center text-sm text-slate-500">
-                  No enquiries match these filters.
-                </Td>
-              </Tr>
-            ) : null}
-            {rows.map((group) => {
-              const lead = group.latestLead
-              const id = leadRowId(lead)
-              const all = group.allLeads ?? [lead]
-              const multi = all.length > 1
-              const exp = expandedKey === id
-              const np = latestNotePreview(lead)
-              return (
-                <Fragment key={id}>
-                  <Tr className="align-top">
-                    {isAdmin ? (
-                      <Td>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(id)}
-                          onChange={() => toggleOne(id)}
-                          aria-label={`Select ${other(lead).name}`}
-                        />
-                      </Td>
-                    ) : null}
-                    <Td className="whitespace-nowrap text-sm">{fmtDate(String(lead.added_on ?? ''))}</Td>
-                    <Td>
-                      <button
-                        type="button"
-                        className={cn('flex items-center gap-1 text-left text-sm font-medium text-violet-800', multi && 'cursor-pointer')}
-                        onClick={() => {
-                          if (multi) setExpandedKey(exp ? null : id)
-                        }}
-                      >
-                        {multi ? exp ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" /> : null}
-                        <span>{convertSpace(String(lead.space_type ?? ''))}</span>
-                        {multi ? (
-                          <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs text-violet-800">{all.length}</span>
-                        ) : null}
-                      </button>
-                    </Td>
-                    <Td className="max-w-[140px] truncate text-sm">{String(lead.interested_in ?? '—')}</Td>
-                    <Td className="text-sm">{String(lead.city ?? '—')}</Td>
-                    <Td className="max-w-[120px] truncate text-sm">{String(lead.microlocation ?? '—')}</Td>
-                    <Td className="text-sm">{String(lead.no_of_seats ?? '—')}</Td>
-                    <Td className="max-w-[120px]">
-                      <button
-                        type="button"
-                        className="truncate text-left text-sm font-medium text-violet-800"
-                        onClick={() => setDrawerLeadId(id)}
-                      >
-                        {other(lead).name ?? '—'}
-                      </button>
-                    </Td>
-                    <Td>
-                      <button
-                        type="button"
-                        className="text-sm text-violet-800"
-                        onClick={() => setDrawerLeadId(id)}
-                      >
-                        {String(lead.lead_stage ?? '—')}
-                      </button>
-                    </Td>
-                    <Td className="max-w-[180px]">
-                      <button type="button" className="text-left text-xs text-slate-700" onClick={() => setDrawerLeadId(id)}>
-                        {np.text || '—'}
-                        {np.count > 1 ? <span className="text-slate-500"> ({np.count})</span> : null}
-                        {np.author ? <span className="mt-1 block text-[10px] text-slate-500">{np.author}</span> : null}
-                      </button>
-                    </Td>
-                    <Td className="text-sm">
-                      {waMeHref(other(lead).phone_number) ? (
-                        <a
-                          className="text-violet-700 underline"
-                          href={waMeHref(other(lead).phone_number)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {stripDisplayPhone(other(lead).phone_number) || '—'}
-                        </a>
-                      ) : (
-                        <span>{stripDisplayPhone(other(lead).phone_number) || '—'}</span>
-                      )}
-                    </Td>
-                    <Td className="max-w-[140px] truncate text-sm">{other(lead).email ?? '—'}</Td>
-                    <Td className="text-sm">{String(lead.budget ?? '—')}</Td>
-                    <Td className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <button
-                          type="button"
-                          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
-                          title="Edit"
-                          onClick={() => navigate(`/layout/enquiry/detail/${id}`)}
-                        >
-                          <PencilSquareIcon className="h-5 w-5" />
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-lg p-2 text-red-600 hover:bg-red-50"
-                          title="Delete"
-                          onClick={() => setConfirmDelete(lead)}
-                        >
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </Td>
-                  </Tr>
-                  {multi && exp
-                    ? all
-                        .filter((l) => leadRowId(l) !== id)
-                        .map((sub) => {
-                          const sid = leadRowId(sub)
-                          const sn = latestNotePreview(sub)
-                          return (
-                            <Tr key={`${id}-${sid}`} className="bg-slate-50/80">
-                              {isAdmin ? (
-                                <Td>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedIds.includes(sid)}
-                                    onChange={() => toggleOne(sid)}
-                                  />
-                                </Td>
-                              ) : null}
-                              <Td className="whitespace-nowrap text-sm">{fmtDate(String(sub.added_on ?? ''))}</Td>
-                              <Td className="text-sm">{convertSpace(String(sub.space_type ?? ''))}</Td>
-                              <Td className="max-w-[140px] truncate text-sm">{String(sub.interested_in ?? '—')}</Td>
-                              <Td className="text-sm">{String(sub.city ?? '—')}</Td>
-                              <Td className="max-w-[120px] truncate text-sm">{String(sub.microlocation ?? '—')}</Td>
-                              <Td className="text-sm">{String(sub.no_of_seats ?? '—')}</Td>
-                              <Td className="truncate text-sm">{other(sub).name ?? '—'}</Td>
-                              <Td className="text-sm">{String(sub.lead_stage ?? '—')}</Td>
-                              <Td className="max-w-[180px] text-xs text-slate-600">{sn.text || '—'}</Td>
-                              <Td className="text-sm">{stripDisplayPhone(other(sub).phone_number) || '—'}</Td>
-                              <Td className="max-w-[140px] truncate text-sm">{other(sub).email ?? '—'}</Td>
-                              <Td className="text-sm">{String(sub.budget ?? '—')}</Td>
-                              <Td className="text-right text-xs text-slate-500">Earlier enquiry</Td>
-                            </Tr>
-                          )
-                        })
-                    : null}
-                </Fragment>
-              )
-            })}
-          </tbody>
-        </Table>
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-600">
-          {total} record{total === 1 ? '' : 's'} · Page {page} of {Math.max(1, Math.ceil(total / pageSize))}
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-sm text-slate-600">
-            Rows
-            <select
-              className={cn(filterSelectClass, 'ml-2 inline-block w-24 py-2')}
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value))
-                setPage(1)
-              }}
-            >
-              {[5, 10, 25, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Button type="button" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-            Previous
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={page >= Math.max(1, Math.ceil(total / pageSize))}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
+              'Loading…'
+            ) : total ? (
+              <>
+                Showing <b className="tnum">{rangeStart}</b>–<b className="tnum">{rangeEnd}</b> of{' '}
+                <b className="tnum">{total}</b>
+              </>
+            ) : (
+              'No results'
+            )}
+          </span>
+          {isAdmin && selectedIds.length ? (
+            <span className="chip brand">{selectedIds.length} selected</span>
+          ) : null}
         </div>
+
+        <div className="leads-tbl-scroll">
+          <table className="tbl leads-tbl">
+            <thead>
+              <tr>
+                {isAdmin ? (
+                  <th className="w-10">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </th>
+                ) : null}
+                <th>
+                  <button
+                    type="button"
+                    className="font-semibold uppercase tracking-[0.04em]"
+                    onClick={() => toggleSort('added_on')}
+                  >
+                    Date {sortBy === 'added_on' ? (orderBy === '1' ? '↑' : '↓') : '↕'}
+                  </button>
+                </th>
+                <th>Space</th>
+                <th>Interested</th>
+                <th>City</th>
+                <th>Location</th>
+                <th>Seats</th>
+                <th>Name</th>
+                <th>Stage</th>
+                <th>Note</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Budget</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listQ.isLoading ? (
+                <tr>
+                  <td colSpan={colCount} className="leads-loading">
+                    Loading enquiries…
+                  </td>
+                </tr>
+              ) : listQ.isError ? (
+                <tr>
+                  <td colSpan={colCount} className="leads-empty text-expired">
+                    Failed to load enquiries.
+                  </td>
+                </tr>
+              ) : !rows.length ? (
+                <tr>
+                  <td colSpan={colCount} className="leads-empty">
+                    <div className="leads-empty-inner">
+                      <MagnifyingGlassIcon />
+                      <strong>No enquiries found</strong>
+                      <p>
+                        {hasActiveFilters
+                          ? 'Try adjusting your search, date range, or stage filters.'
+                          : 'New enquiries will appear here as they come in.'}
+                      </p>
+                      {hasActiveFilters ? (
+                        <Button size="sm" onClick={resetFilters}>
+                          Clear filters
+                        </Button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
+
+              {rows.map((group) => {
+                const lead = group.latestLead
+                const id = leadRowId(lead)
+                const all = group.allLeads ?? [lead]
+                const multi = all.length > 1
+                const exp = expandedKey === id
+                const np = latestNotePreview(lead)
+                return (
+                  <Fragment key={id}>
+                    <tr className="align-top">
+                      {isAdmin ? (
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(id)}
+                            onChange={() => toggleOne(id)}
+                            aria-label={`Select ${other(lead).name}`}
+                          />
+                        </td>
+                      ) : null}
+                      <td className="whitespace-nowrap text-muted">
+                        {fmtDate(String(lead.added_on ?? ''))}
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className={cn(
+                            'flex items-center gap-1 text-left font-semibold text-brand-ink',
+                            multi && 'cursor-pointer',
+                          )}
+                          onClick={() => {
+                            if (multi) setExpandedKey(exp ? null : id)
+                          }}
+                        >
+                          {multi ? (
+                            exp ? (
+                              <ChevronDownIcon className="h-4 w-4" />
+                            ) : (
+                              <ChevronRightIcon className="h-4 w-4" />
+                            )
+                          ) : null}
+                          <span>{convertSpace(String(lead.space_type ?? ''))}</span>
+                          {multi ? <span className="chip brand">{all.length}</span> : null}
+                        </button>
+                      </td>
+                      <td className="max-w-[140px] truncate">{String(lead.interested_in ?? '—')}</td>
+                      <td>{String(lead.city ?? '—')}</td>
+                      <td className="max-w-[120px] truncate">{String(lead.microlocation ?? '—')}</td>
+                      <td>{String(lead.no_of_seats ?? '—')}</td>
+                      <td className="max-w-[140px]">
+                        <button
+                          type="button"
+                          className="block w-full truncate text-left font-semibold text-brand-ink"
+                          onClick={() => setDrawerLeadId(id)}
+                        >
+                          {other(lead).name ?? '—'}
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="chip"
+                          onClick={() => setDrawerLeadId(id)}
+                        >
+                          {String(lead.lead_stage ?? '—')}
+                        </button>
+                      </td>
+                      <td className="max-w-[180px]">
+                        <button
+                          type="button"
+                          className="text-left text-[12px] text-muted"
+                          onClick={() => setDrawerLeadId(id)}
+                        >
+                          {np.text || '—'}
+                          {np.count > 1 ? <span> ({np.count})</span> : null}
+                          {np.author ? (
+                            <span className="mt-1 block text-[10px] text-faint">{np.author}</span>
+                          ) : null}
+                        </button>
+                      </td>
+                      <td>
+                        {waMeHref(other(lead).phone_number) ? (
+                          <a
+                            className="text-brand-ink underline"
+                            href={waMeHref(other(lead).phone_number)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {stripDisplayPhone(other(lead).phone_number) || '—'}
+                          </a>
+                        ) : (
+                          <span>{stripDisplayPhone(other(lead).phone_number) || '—'}</span>
+                        )}
+                      </td>
+                      <td className="max-w-[160px] truncate">{other(lead).email ?? '—'}</td>
+                      <td>{String(lead.budget ?? '—')}</td>
+                      <td className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <button
+                            type="button"
+                            className="icon-btn plain"
+                            title="Edit"
+                            onClick={() => navigate(`/layout/enquiry/detail/${id}`)}
+                          >
+                            <PencilSquareIcon />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-btn plain text-expired"
+                            title="Delete"
+                            onClick={() => setConfirmDelete(lead)}
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {multi && exp
+                      ? all
+                          .filter((l) => leadRowId(l) !== id)
+                          .map((sub) => {
+                            const sid = leadRowId(sub)
+                            const sn = latestNotePreview(sub)
+                            return (
+                              <tr key={`${id}-${sid}`} className="bg-surface-2">
+                                {isAdmin ? (
+                                  <td>
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedIds.includes(sid)}
+                                      onChange={() => toggleOne(sid)}
+                                    />
+                                  </td>
+                                ) : null}
+                                <td className="whitespace-nowrap text-muted">
+                                  {fmtDate(String(sub.added_on ?? ''))}
+                                </td>
+                                <td>{convertSpace(String(sub.space_type ?? ''))}</td>
+                                <td className="max-w-[140px] truncate">
+                                  {String(sub.interested_in ?? '—')}
+                                </td>
+                                <td>{String(sub.city ?? '—')}</td>
+                                <td className="max-w-[120px] truncate">
+                                  {String(sub.microlocation ?? '—')}
+                                </td>
+                                <td>{String(sub.no_of_seats ?? '—')}</td>
+                                <td className="truncate">{other(sub).name ?? '—'}</td>
+                                <td>{String(sub.lead_stage ?? '—')}</td>
+                                <td className="max-w-[180px] text-[12px] text-muted">
+                                  {sn.text || '—'}
+                                </td>
+                                <td>{stripDisplayPhone(other(sub).phone_number) || '—'}</td>
+                                <td className="max-w-[160px] truncate">
+                                  {other(sub).email ?? '—'}
+                                </td>
+                                <td>{String(sub.budget ?? '—')}</td>
+                                <td className="text-right text-[11px] text-faint">
+                                  Earlier enquiry
+                                </td>
+                              </tr>
+                            )
+                          })
+                      : null}
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <ListPagination
+          currentPage={currentPage}
+          pageCount={pageCount}
+          total={total}
+          pageSize={pageSize}
+          pageSizeOptions={[10, 25, 50, 100]}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size)
+            setPage(1)
+          }}
+          loading={listQ.isLoading}
+        />
       </div>
 
-      <EnquiryLeadDrawer open={Boolean(drawerLeadId)} leadIdParam={drawerLeadId} onClose={() => setDrawerLeadId(null)} />
+      <EnquiryLeadDrawer
+        open={Boolean(drawerLeadId)}
+        leadIdParam={drawerLeadId}
+        onClose={() => setDrawerLeadId(null)}
+      />
 
       <ConfirmDialog
         open={Boolean(confirmDelete)}
         title="Delete lead?"
-        description={confirmDelete ? `Remove ${other(confirmDelete).name ?? 'this lead'} permanently?` : undefined}
+        description={
+          confirmDelete ? `Remove ${other(confirmDelete).name ?? 'this lead'} permanently?` : undefined
+        }
         danger
+        busy={delMut.isPending}
         confirmText="Delete"
         onCancel={() => setConfirmDelete(null)}
         onConfirm={() => confirmDelete && delMut.mutate(leadRowId(confirmDelete))}
@@ -920,6 +1087,7 @@ export function EnquiryListPage() {
         title="Delete selected leads?"
         description={`This will delete ${selectedIds.length} lead(s).`}
         danger
+        busy={bulkDelMut.isPending}
         confirmText="Delete all"
         onCancel={() => setConfirmBulkDelete(false)}
         onConfirm={() => bulkDelMut.mutate()}

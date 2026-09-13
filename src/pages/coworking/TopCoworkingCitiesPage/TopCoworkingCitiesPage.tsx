@@ -71,7 +71,7 @@ function PopularDraggableList({
             setDragIdx(null)
           }}
           className={cn(
-            'grid grid-cols-1 gap-2 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2.5 shadow-sm transition sm:grid-cols-12 sm:items-center sm:gap-2',
+            'grid grid-cols-1 gap-2 rounded-xl border border-slate-200/80 bg-surface px-3 py-2.5 shadow-sm transition sm:grid-cols-12 sm:items-center sm:gap-2',
             dragIdx === index && 'opacity-60 ring-2 ring-violet-300',
             !disabled && 'cursor-grab active:cursor-grabbing',
           )}
@@ -264,7 +264,7 @@ export function TopCoworkingCitiesPage() {
     >
       <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
         <div className="space-y-4 lg:col-span-7 xl:col-span-8">
-          <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-sm ring-1 ring-slate-200/50 sm:p-5">
+          <div className="rounded-2xl border border-slate-200/70 bg-surface p-4 shadow-sm ring-1 ring-slate-200/50 sm:p-5">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="min-w-0 sm:col-span-2">
                 <label className={filterLabel} htmlFor="top-cc-name">
@@ -384,7 +384,7 @@ export function TopCoworkingCitiesPage() {
         </div>
 
         <aside className="lg:col-span-5 xl:col-span-4">
-          <div className="sticky top-4 space-y-3 rounded-2xl border border-violet-200/60 bg-gradient-to-b from-violet-50/50 to-white/90 p-4 shadow-md ring-1 ring-violet-100/80">
+          <div className="sticky top-4 space-y-3 rounded-2xl border border-line bg-surface p-4 shadow-md ring-1 ring-line">
             <div>
               <h2 className="text-base font-semibold text-slate-900">Popular coworking</h2>
               <p className="mt-1 text-xs text-slate-600">

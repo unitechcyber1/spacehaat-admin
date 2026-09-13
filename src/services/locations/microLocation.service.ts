@@ -47,3 +47,56 @@ export async function removeMicroLocation(id: string) {
   return res.data
 }
 
+/** Priority admin — mirrors Angular `MicroLocationService` priority endpoints. */
+export type MicroLocationSpaceType = 'for_coworking' | 'for_coliving' | 'for_office'
+
+export type MicroLocationPriorityRow = MicroLocation & {
+  _id?: string
+  isSelected?: boolean
+  priority?: Partial<
+    Record<
+      MicroLocationSpaceType,
+      { order?: number; is_active?: boolean; city?: string; name?: string }
+    >
+  >
+}
+
+export async function getMicroLocationsByCityAndSpaceType(params: Record<string, unknown>) {
+  const res = await apiClient.get<
+    ArrayResponse<MicroLocation> & { totleRecords?: number }
+  >('admin/microLocationByCityAndSpaceType', { params })
+  const body = res.data
+  return {
+    ...body,
+    totalRecords:
+      body.totalRecords ?? body.totleRecords ?? (Array.isArray(body.data) ? body.data.length : 0),
+  }
+}
+
+export async function getPriorityMicrolocations(params: { type: string; city: string }) {
+  const res = await apiClient.get<
+    ObjectResponse<{ prioritySpaces?: MicroLocationPriorityRow[] }>
+  >('admin/microLocation/priority/type', { params })
+  return res.data
+}
+
+export async function saveMicrolocationPriority(payload: {
+  id: string
+  type: string
+  data: { is_active: boolean; order: number; city?: string; name?: string }
+}) {
+  const res = await apiClient.post<ObjectResponse<unknown>>('admin/microLocation/priority', payload)
+  return res.data
+}
+
+export async function dragMicrolocationPriority(payload: {
+  updatedLocations: MicroLocationPriorityRow[]
+  spaceType: string
+}) {
+  const res = await apiClient.put<ObjectResponse<unknown>>(
+    'admin/microLocation/priority/drag',
+    payload,
+  )
+  return res.data
+}
+

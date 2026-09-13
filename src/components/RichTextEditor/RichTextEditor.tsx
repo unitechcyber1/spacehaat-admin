@@ -246,7 +246,7 @@ export function RichTextEditor({
     return (
       <div
         className={cn(
-          'rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-400',
+          'rounded-xl border border-slate-200 bg-surface px-3 py-2 text-sm text-slate-400',
           resolvedHeightClass,
           className,
         )}

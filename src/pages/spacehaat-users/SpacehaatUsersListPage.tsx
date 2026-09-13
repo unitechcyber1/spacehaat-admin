@@ -157,7 +157,7 @@ export function SpacehaatUsersListPage() {
         </Button>
       }
     >
-      <div className="space-y-4 rounded-2xl bg-white/70 p-4 ring-1 ring-slate-200/70 sm:p-6">
+      <div className="space-y-4 rounded-2xl bg-surface p-4 ring-1 ring-slate-200/70 sm:p-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Name</label>
@@ -183,7 +183,7 @@ export function SpacehaatUsersListPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl bg-white/70 ring-1 ring-slate-200/70">
+      <div className="overflow-x-auto rounded-2xl bg-surface ring-1 ring-slate-200/70">
         <Table>
           <thead>
             <Tr>

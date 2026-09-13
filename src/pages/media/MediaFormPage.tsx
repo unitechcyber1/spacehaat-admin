@@ -160,7 +160,7 @@ export function MediaFormPage() {
             <input
               type="file"
               accept="image/*"
-              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-violet-700"
+              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-on-brand hover:file:bg-violet-700"
               onChange={(e) => {
                 const f = e.target.files?.[0]
                 if (f) void onPickFile(f)

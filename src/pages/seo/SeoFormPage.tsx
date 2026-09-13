@@ -242,7 +242,7 @@ export function SeoFormPage() {
         <p className="text-sm text-rose-600">Could not load SEO entry.</p>
       ) : showForm ? (
         <form onSubmit={onSubmit} className="max-w-6xl space-y-8">
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Page details</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -273,7 +273,7 @@ export function SeoFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">SEO details</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-1">
@@ -331,7 +331,7 @@ export function SeoFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Twitter</h3>
             <div className="space-y-4">
               <div>
@@ -358,7 +358,7 @@ export function SeoFormPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  className="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-violet-700"
+                  className="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-on-brand hover:file:bg-violet-700"
                   onChange={(e) => {
                     const f = e.target.files?.[0]
                     if (f) void onUploadTwitter(f)
@@ -371,7 +371,7 @@ export function SeoFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Open Graph</h3>
             <div className="space-y-4">
               <div>
@@ -398,7 +398,7 @@ export function SeoFormPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  className="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-violet-700"
+                  className="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-on-brand hover:file:bg-violet-700"
                   onChange={(e) => {
                     const f = e.target.files?.[0]
                     if (f) void onUploadOg(f)
@@ -411,7 +411,7 @@ export function SeoFormPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Script</h3>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="seo-script">
               Script (without script tags)
@@ -426,7 +426,7 @@ export function SeoFormPage() {
             />
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-base font-semibold text-slate-900">FAQs</h3>
               <Button type="button" variant="secondary" onClick={addFaq}>
@@ -481,7 +481,7 @@ export function SeoFormPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-base font-semibold text-slate-900">Reviews</h3>
               <Button type="button" variant="secondary" onClick={addReview}>
@@ -571,7 +571,7 @@ export function SeoFormPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-200/50">
+          <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
             <h3 className="mb-4 text-base font-semibold text-slate-900">Footer</h3>
             <div className="mb-4">
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="seo-footer-title">

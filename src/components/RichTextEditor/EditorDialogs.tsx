@@ -47,7 +47,7 @@ export function LinkDialog({
   }
 
   return (
-    <Modal open={open} onClose={onCancel} title="Insert link" className="max-w-lg">
+    <Modal open={open} onClose={onCancel} title="Insert link">
       <div className="space-y-4">
         <div>
           <label className={labelClass} htmlFor="rte-link-url">
@@ -185,7 +185,7 @@ export function ImageDialog({
   }
 
   return (
-    <Modal open={open} onClose={onCancel} title="Insert image" className="max-w-xl">
+    <Modal open={open} onClose={onCancel} title="Insert image" size="lg">
       <div className="space-y-4">
         <div>
           <span className={labelClass}>Upload</span>
@@ -193,7 +193,7 @@ export function ImageDialog({
             type="file"
             accept="image/*"
             disabled={uploading}
-            className="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-violet-700 disabled:opacity-60"
+            className="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-on-brand hover:file:bg-violet-700 disabled:opacity-60"
             onChange={(e) => {
               const f = e.target.files?.[0]
               if (f) void handleFile(f)
@@ -327,7 +327,7 @@ export function TableDialog({
   }
 
   return (
-    <Modal open={open} onClose={onCancel} title="Insert table" className="max-w-md">
+    <Modal open={open} onClose={onCancel} title="Insert table" size="sm">
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

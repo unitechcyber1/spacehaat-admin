@@ -29,7 +29,7 @@ const inputClass =
 
 function section(title: string, children: React.ReactNode) {
   return (
-    <section className="space-y-4 rounded-2xl bg-white/70 p-6 ring-1 ring-slate-200/70">
+    <section className="space-y-4 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70">
       <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
       {children}
     </section>
@@ -303,7 +303,7 @@ export function PgFormPage() {
       }
     >
       {!isNew && id ? (
-        <div className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200/70 bg-white/70 p-4">
+        <div className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200/70 bg-surface p-4">
           <span className="mr-2 text-sm font-medium text-slate-700">Quick status:</span>
           <Button
             type="button"

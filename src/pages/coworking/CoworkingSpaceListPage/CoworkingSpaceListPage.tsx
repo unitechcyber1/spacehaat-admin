@@ -206,7 +206,7 @@ export function CoworkingSpaceListPage() {
           role="tooltip"
           className={cn(
             'pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap',
-            'rounded-lg bg-slate-900 px-2 py-1 text-xs font-medium text-white shadow-lg',
+            'rounded-lg bg-slate-900 px-2 py-1 text-xs font-medium text-canvas shadow-lg',
             'opacity-0 transition-opacity duration-150',
             'group-hover:opacity-100 group-focus-within:opacity-100',
           )}
@@ -252,8 +252,8 @@ export function CoworkingSpaceListPage() {
           </Button>
         }
       >
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-gradient-to-br from-white via-violet-50/40 to-fuchsia-50/30 p-1 shadow-md shadow-slate-200/50 ring-1 ring-white/80">
-          <div className="rounded-[0.875rem] bg-white/85 p-5 backdrop-blur-sm sm:p-6">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-surface p-1 shadow-md  ring-1 ring-line">
+          <div className="rounded-[0.875rem] bg-surface p-5 sm:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">Filters</h2>
@@ -262,7 +262,7 @@ export function CoworkingSpaceListPage() {
               <Button
                 type="button"
                 variant="secondary"
-                className="shrink-0 border-slate-200/80 bg-white/90 text-slate-700 hover:bg-slate-50"
+                className="shrink-0 border-slate-200/80 bg-surface text-slate-700 hover:bg-slate-50"
                 onClick={() => {
                   setNameInput('')
                   setLocationInput('')
@@ -389,7 +389,7 @@ export function CoworkingSpaceListPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="secondary"
-              className="bg-white/90"
+              className="bg-surface"
               disabled={!canPrev}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
@@ -400,7 +400,7 @@ export function CoworkingSpaceListPage() {
             </div>
             <Button
               variant="secondary"
-              className="bg-white/90"
+              className="bg-surface"
               disabled={!canNext}
               onClick={() => setPage((p) => p + 1)}
             >
@@ -410,7 +410,7 @@ export function CoworkingSpaceListPage() {
         </div>
 
         <Table className="mt-5 overflow-hidden rounded-2xl ring-1 ring-slate-200/70">
-          <thead className="bg-gradient-to-r from-slate-50 to-violet-50/40">
+          <thead className="bg-surface-2">
             <tr>
               <Th className="w-[28%]">
                 <button

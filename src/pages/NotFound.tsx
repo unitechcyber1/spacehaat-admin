@@ -12,7 +12,7 @@ export function NotFound() {
       <div className="mt-4">
         <Link
           to={getDefaultLayoutPathForUser()}
-          className="inline-flex items-center rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="inline-flex items-center rounded bg-slate-900 px-3 py-2 text-sm font-medium text-canvas hover:bg-slate-800"
         >
           Go to dashboard
         </Link>

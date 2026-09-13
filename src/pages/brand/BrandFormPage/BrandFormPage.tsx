@@ -323,7 +323,7 @@ export function BrandFormPage() {
       }
     >
       <form
-        className="space-y-8 rounded-2xl bg-white/70 p-6 ring-1 ring-slate-200/70 backdrop-blur sm:p-8"
+        className="space-y-8 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70 sm:p-8"
         onSubmit={(e) => {
           e.preventDefault()
           saveMut.mutate(brand)
