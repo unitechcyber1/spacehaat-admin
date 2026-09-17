@@ -11,6 +11,7 @@ import { RichTextEditor } from '../../../components/RichTextEditor'
 import { Table, Td, Th, Tr } from '../../../components/Table'
 import { cn } from '../../../lib/ui'
 import { buildCoworkingListingPreviewUrl } from '../../../lib/coworkingPreviewUrl'
+import { workspaceRowId } from '../../../lib/workspaceDisplay'
 import { getActivePlanCategories } from '../../../services/coworking/activePlanCategories.service'
 import type { Amenity } from '../../../services/coworking/amenity.service'
 import { getAmenities } from '../../../services/coworking/amenity.service'
@@ -84,10 +85,9 @@ export function CoworkingSpaceDetailPage() {
   const mastersQ = useQuery({
     queryKey: ['workspace-form-masters'],
     queryFn: async () => {
-      const [amRes, brandRes, countryRes, catRes] = await Promise.all([
+      const [amRes, brandRes, catRes] = await Promise.all([
         getAmenities({}),
         getBrands({ dropdown: 1, limit: 500 }),
-        getCountries({ limit: 100_000 }),
         getActivePlanCategories(),
       ])
       const amenityRows = (amRes.data ?? []).filter((a: Amenity) => a.for_coWorking === true)
@@ -95,11 +95,19 @@ export function CoworkingSpaceDetailPage() {
       return {
         amenities: amenityRows,
         brands: brandRows,
-        countries: countryRes.data ?? [],
         planCategories: catRes.data ?? [],
       }
     },
     staleTime: 60_000,
+  })
+
+  const countriesQ = useQuery({
+    queryKey: ['workspace-form-countries'],
+    queryFn: async () => {
+      const res = await getCountries({ limit: 100_000 })
+      return res.data ?? []
+    },
+    staleTime: 5 * 60_000,
   })
 
   const loc = (ws?.location ?? {}) as Ws
@@ -131,12 +139,12 @@ export function CoworkingSpaceDetailPage() {
   }, [isNew, detailQ.data])
 
   useEffect(() => {
-    if (!isNew || !mastersQ.isSuccess) return
+    if (!isNew) return
     setWs((prev) => {
       if (prev) return prev
       return { ...emptyWorkspace() } as Ws
     })
-  }, [isNew, mastersQ.isSuccess])
+  }, [isNew])
 
   const setLoc = useCallback((patch: Record<string, unknown>) => {
     setWs((w) => {
@@ -153,7 +161,7 @@ export function CoworkingSpaceDetailPage() {
     },
     onSuccess: (apiRes: any) => {
       const saved = apiRes?.data as Ws | undefined
-      const id = saved?.id ?? ws?.id
+      const id = saved ? workspaceRowId(saved) || ws?.id : ws?.id
       toast.success('Workspace saved')
       qc.invalidateQueries({ queryKey: ['coworking-spaces'] })
       if (id && !isNew) {
@@ -185,6 +193,11 @@ export function CoworkingSpaceDetailPage() {
     if (!ws) return
     if (!ws.name?.trim() || !ws.slug?.trim() || !ws.brand || !ws.spaceTag) {
       toast.error('Name, slug, brand, and space tag are required.')
+      return
+    }
+    const country = (ws.location as Ws | undefined)?.country
+    if (!country) {
+      toast.error('Country is required in the location section.')
       return
     }
     const next = { ...ws }
@@ -478,13 +491,27 @@ export function CoworkingSpaceDetailPage() {
     )
   }
 
-  if (!ws || !mastersQ.data) {
+  if (!ws || mastersQ.isLoading) {
     return (
       <PageShell title={title} description="Preparing form…">
         <p className="text-sm text-slate-600">Loading reference data…</p>
       </PageShell>
     )
   }
+
+  if (mastersQ.isError) {
+    return (
+      <PageShell title={title} description="Error">
+        <p className="text-rose-600">Could not load brands, amenities, or plan categories.</p>
+        <Button className="mt-4" variant="secondary" onClick={() => navigate('/layout/coworking/spaces')}>
+          Back to list
+        </Button>
+      </PageShell>
+    )
+  }
+
+  const masterData = mastersQ.data!
+  const countryRows = countriesQ.data ?? []
 
   const sc = (ws.space_contact_details ?? {}) as Ws
 
@@ -574,7 +601,7 @@ export function CoworkingSpaceDetailPage() {
                 required
               >
                 <option value="">Select brand…</option>
-                {mastersQ.data.brands.map((b) =>
+                {masterData.brands.map((b) =>
                   b.id ? (
                     <option key={b.id} value={b.id}>
                       {b.name}
@@ -688,11 +715,15 @@ export function CoworkingSpaceDetailPage() {
                 }
               >
                 <option value="">Select…</option>
-                {mastersQ.data.countries.map((c: { id: string; name?: string }) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                {countriesQ.isLoading ? (
+                  <option value="">Loading countries…</option>
+                ) : (
+                  countryRows.map((c: { id: string; name?: string }) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
             <div>
@@ -769,7 +800,10 @@ export function CoworkingSpaceDetailPage() {
                 type="number"
                 step="any"
                 value={String(loc.latitude ?? '')}
-                onChange={(e) => setLoc({ latitude: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const v = e.target.value.trim()
+                  setLoc({ latitude: v ? parseFloat(v) : undefined })
+                }}
               />
             </div>
             <div>
@@ -778,7 +812,10 @@ export function CoworkingSpaceDetailPage() {
                 type="number"
                 step="any"
                 value={String(loc.longitude ?? '')}
-                onChange={(e) => setLoc({ longitude: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const v = e.target.value.trim()
+                  setLoc({ longitude: v ? parseFloat(v) : undefined })
+                }}
               />
             </div>
             <div className="sm:col-span-2 lg:col-span-3 flex flex-wrap gap-4 border-t border-slate-100 pt-4">
@@ -1137,7 +1174,7 @@ export function CoworkingSpaceDetailPage() {
                   }}
                 >
                   <option value="">Category…</option>
-                  {mastersQ.data.planCategories.map((c: { id?: string; _id?: string; name?: string }) => {
+                  {masterData.planCategories.map((c: { id?: string; _id?: string; name?: string }) => {
                     const cid = c._id ?? c.id ?? ''
                     return cid ? (
                       <option key={cid} value={cid}>
@@ -1357,7 +1394,7 @@ export function CoworkingSpaceDetailPage() {
 
         {section('Amenities', (
           <div className="flex max-h-64 flex-wrap gap-3 overflow-y-auto rounded-xl bg-slate-50/80 p-4">
-            {mastersQ.data.amenities.map((a: Amenity) => (
+            {masterData.amenities.map((a: Amenity) => (
               <label key={a.id} className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200">
                 <input
                   type="checkbox"

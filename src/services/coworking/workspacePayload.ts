@@ -59,6 +59,20 @@ function setRoomsForServer(rooms: unknown) {
   }, [])
 }
 
+function setAmentiesForServer(amenties: unknown) {
+  if (!Array.isArray(amenties)) return []
+  return amenties
+    .map((item) => {
+      if (typeof item === 'string') return item
+      if (item && typeof item === 'object') {
+        const row = item as { id?: string; _id?: string }
+        return row.id ?? row._id ?? null
+      }
+      return null
+    })
+    .filter(Boolean)
+}
+
 function setHoursOfOperationForServer(hours: unknown) {
   if (!hours || typeof hours !== 'object') return hours
   const out: AnyRec = {}
@@ -99,6 +113,7 @@ export function buildWorkspaceSavePayload(ws: AnyRec): AnyRec {
   object.rooms = setRoomsForServer(object.rooms)
   object.images = setImagesForServer(object.images)
   object.plans = setPlansForServer(object.plans)
+  object.amenties = setAmentiesForServer(object.amenties)
   object.hours_of_operation = setHoursOfOperationForServer(object.hours_of_operation)
 
   const loc = object.location as AnyRec | undefined
@@ -128,6 +143,10 @@ export function buildWorkspaceSavePayload(ws: AnyRec): AnyRec {
       loc.tram_landmark = ''
       loc.tram_distance = ''
     }
+
+    // Omit zero coords so the backend does not build invalid geo entries.
+    if (!loc.latitude) delete loc.latitude
+    if (!loc.longitude) delete loc.longitude
   }
 
   return object

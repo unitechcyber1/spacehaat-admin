@@ -132,8 +132,6 @@ export function emptyWorkspace(): Record<string, unknown> {
       taxi_stand_distance: '',
       tram_landmark: '',
       tram_distance: '',
-      latitude: 0,
-      longitude: 0,
       is_near_metro: false,
       is_ferry_stop: false,
       is_bus_stop: false,
