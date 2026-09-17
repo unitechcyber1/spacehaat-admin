@@ -1,22 +1,25 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { IconAction } from '../../components/IconAction'
 import { Input } from '../../components/Input'
+import { ListFilterCard } from '../../components/ListFilterCard'
+import { ListPageMeta } from '../../components/ListPageMeta'
+import { ListPagination } from '../../components/ListPagination'
 import { PageShell } from '../../components/PageShell'
+import { BoolBadge } from '../../components/StatusBadge'
 import { Table, Td, Th, Tr } from '../../components/Table'
+import { filterLabelClass, resolveListTotal, sortIndicator } from '../../lib/listPageUi'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { deleteAmenity, getAmenities } from '../../services/amenity/amenity.service'
 import type { AmenityRecord } from '../../services/amenity/types'
 
 function amenityRowId(a: AmenityRecord): string {
   return String(a.id ?? a._id ?? '')
-}
-
-function activeLabel(v: boolean | undefined) {
-  return v ? 'Active' : 'inactive'
 }
 
 export function AmenityListPage() {
@@ -57,11 +60,9 @@ export function AmenityListPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Delete failed'),
   })
 
-  const total = listQ.data?.totalRecords ?? listQ.data?.data?.length ?? 0
   const rows = (listQ.data?.data ?? []) as AmenityRecord[]
+  const total = resolveListTotal(listQ.data, rows.length)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const canPrev = page > 1
-  const canNext = page < totalPages
 
   function toggleSort(col: string) {
     if (sortBy !== col) {
@@ -76,140 +77,102 @@ export function AmenityListPage() {
     setPage(1)
   }
 
-  function sortMark(col: string) {
-    if (sortBy !== col) return '↕'
-    return orderBy === '-1' ? '↓' : '↑'
-  }
-
   return (
     <>
       <PageShell
         title="Amenities"
-        description="Manage amenities for coworking, office, coliving, and flatspace (legacy Amenities table)."
+        description="Manage amenities for coworking, office, coliving, and flatspace listings."
         actions={
           <Button variant="primary" onClick={() => navigate('/layout/amenty/add')}>
             Add amenity
           </Button>
         }
       >
-        <div className="mb-4 rounded-2xl border border-slate-200/70 bg-surface p-4 shadow-sm ring-1 ring-slate-200/50">
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="amenity-search">
-            Search name
-          </label>
-          <Input
-            id="amenity-search"
-            value={nameInput}
-            onChange={(e) => {
-              setPage(1)
-              setNameInput(e.target.value)
-            }}
-            placeholder="Search by name…"
-            className="max-w-md rounded-xl"
-          />
-        </div>
-
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">
-            {listQ.isLoading ? 'Loading…' : `${total} records`}
-            {listQ.isError ? (
-              <span className="ml-2 text-rose-600">{(listQ.error as Error)?.message ?? 'Failed to load'}</span>
-            ) : null}
+        <ListFilterCard
+          description="Search by amenity name."
+          onReset={() => { setNameInput(''); setPage(1); setSortBy(''); setOrderBy(''); setPageSize(10) }}
+        >
+          <div className="min-w-0 sm:col-span-2">
+            <label className={filterLabelClass} htmlFor="amenity-search">Search name</label>
+            <Input
+              id="amenity-search"
+              value={nameInput}
+              onChange={(e) => { setPage(1); setNameInput(e.target.value) }}
+              placeholder="Search by name…"
+            />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs text-slate-500" htmlFor="amenity-page-size">
-              Per page
-            </label>
-            <select
-              id="amenity-page-size"
-              className="rounded-xl border-0 bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-violet-500"
-              value={pageSize}
-              onChange={(e) => {
-                setPage(1)
-                setPageSize(Number(e.target.value))
-              }}
-            >
-              {[5, 10, 25, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <Button variant="secondary" disabled={!canPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              Prev
-            </Button>
-            <span className="text-sm text-slate-600">
-              Page <span className="font-medium text-slate-900">{page}</span> / {totalPages}
-            </span>
-            <Button variant="secondary" disabled={!canNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+        </ListFilterCard>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <thead className="bg-slate-50">
-              <tr>
-                <Th>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                    onClick={() => toggleSort('name')}
-                  >
-                    Name {sortMark('name')}
-                  </button>
-                </Th>
-                <Th>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                    onClick={() => toggleSort('category')}
-                  >
-                    Category {sortMark('category')}
-                  </button>
-                </Th>
-                <Th>For coworking</Th>
-                <Th>Office / commercial</Th>
-                <Th>Coliving</Th>
-                <Th>Flat / residential</Th>
-                <Th>Edit</Th>
-                <Th>Delete</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {!listQ.isLoading && rows.length === 0 ? (
-                <Tr>
-                  <Td colSpan={8} className="py-12 text-center text-sm text-slate-500">
-                    No amenities. Add one with “Add amenity”.
-                  </Td>
-                </Tr>
-              ) : null}
-              {rows.map((row) => {
+        <ListPageMeta
+          loading={listQ.isLoading}
+          total={total}
+          noun="amenity"
+          error={listQ.isError ? (listQ.error as Error)?.message ?? 'Failed to load' : null}
+        />
+
+        <Table>
+          <thead className="bg-surface-2">
+            <tr>
+              <Th className="w-[22%]">
+                <button type="button" className="flex items-center gap-1 font-semibold uppercase tracking-wide text-muted hover:text-brand" onClick={() => toggleSort('name')}>
+                  Name {sortIndicator(sortBy === 'name', orderBy)}
+                </button>
+              </Th>
+              <Th className="w-[16%]">
+                <button type="button" className="flex items-center gap-1 font-semibold uppercase tracking-wide text-muted hover:text-brand" onClick={() => toggleSort('category')}>
+                  Category {sortIndicator(sortBy === 'category', orderBy)}
+                </button>
+              </Th>
+              <Th className="w-[10%] text-center">Coworking</Th>
+              <Th className="w-[10%] text-center">Office</Th>
+              <Th className="w-[10%] text-center">Coliving</Th>
+              <Th className="w-[10%] text-center">Flat</Th>
+              <Th className="w-[12%] text-center">Actions</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {listQ.isLoading ? (
+              <Tr><Td colSpan={7} className="list-empty">Loading…</Td></Tr>
+            ) : rows.length === 0 ? (
+              <Tr><Td colSpan={7} className="list-empty"><strong>No amenities</strong>Add one with “Add amenity”.</Td></Tr>
+            ) : (
+              rows.map((row) => {
                 const id = amenityRowId(row)
                 return (
                   <Tr key={id || row.name}>
-                    <Td className="font-medium text-slate-900">{row.name ?? '—'}</Td>
-                    <Td className="text-slate-700">{row.category || 'No category'}</Td>
-                    <Td className="text-sm">{activeLabel(row.for_coWorking)}</Td>
-                    <Td className="text-sm">{activeLabel(row.for_office)}</Td>
-                    <Td className="text-sm">{activeLabel(row.for_coLiving)}</Td>
-                    <Td className="text-sm">{activeLabel(row.for_flatspace)}</Td>
-                    <Td>
-                      <Button variant="ghost" disabled={!id} onClick={() => navigate(`/layout/amenty/detail/${id}`)}>
-                        Edit
-                      </Button>
-                    </Td>
-                    <Td>
-                      <Button variant="ghost" className="text-rose-700" onClick={() => setConfirm(row)}>
-                        Delete
-                      </Button>
+                    <Td className="align-middle font-medium text-ink">{row.name ?? '—'}</Td>
+                    <Td className="align-middle text-sm capitalize text-muted">{row.category || '—'}</Td>
+                    <Td className="align-middle text-center"><BoolBadge value={row.for_coWorking} trueLabel="Yes" falseLabel="No" /></Td>
+                    <Td className="align-middle text-center"><BoolBadge value={row.for_office} trueLabel="Yes" falseLabel="No" /></Td>
+                    <Td className="align-middle text-center"><BoolBadge value={row.for_coLiving} trueLabel="Yes" falseLabel="No" /></Td>
+                    <Td className="align-middle text-center"><BoolBadge value={row.for_flatspace} trueLabel="Yes" falseLabel="No" /></Td>
+                    <Td className="align-middle">
+                      <div className="table-actions">
+                        <IconAction label="Edit" disabled={!id} onClick={() => navigate(`/layout/amenty/detail/${id}`)}>
+                          <PencilSquareIcon className="h-5 w-5" aria-hidden />
+                        </IconAction>
+                        <IconAction label="Delete" tone="rose" onClick={() => setConfirm(row)}>
+                          <TrashIcon className="h-5 w-5" aria-hidden />
+                        </IconAction>
+                      </div>
                     </Td>
                   </Tr>
                 )
-              })}
-            </tbody>
-          </Table>
-        </div>
+              })
+            )}
+          </tbody>
+        </Table>
+
+        <ListPagination
+          currentPage={Math.min(page, totalPages)}
+          pageCount={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          loading={listQ.isLoading}
+          className="border-0 bg-transparent px-0 shadow-none ring-0"
+        />
       </PageShell>
 
       <ConfirmDialog
@@ -219,10 +182,7 @@ export function AmenityListPage() {
         confirmText="Delete"
         danger
         onCancel={() => setConfirm(null)}
-        onConfirm={() => {
-          const id = confirm ? amenityRowId(confirm) : ''
-          if (id) delMut.mutate(id)
-        }}
+        onConfirm={() => { const id = confirm ? amenityRowId(confirm) : ''; if (id) delMut.mutate(id) }}
       />
     </>
   )

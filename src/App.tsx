@@ -37,6 +37,15 @@ import { SpacehaatUsersListPage } from './pages/spacehaat-users/SpacehaatUsersLi
 import { BlogFormPage } from './pages/blog/BlogFormPage'
 import { BlogListPage } from './pages/blog/BlogListPage'
 import { NoAccessPage } from './pages/NoAccessPage'
+import { BillingLayout } from './pages/billing/BillingLayout'
+import { BillingInvoicesPage } from './pages/billing/BillingInvoicesPage'
+import { BillingClientsPage } from './pages/billing/BillingClientsPage'
+import { BillingClientFormPage } from './pages/billing/BillingClientFormPage'
+import { BillingSettingsPage } from './pages/billing/BillingSettingsPage'
+import { StateGstPage } from './pages/billing/StateGstPage'
+import { ProductCatalogPage } from './pages/billing/ProductCatalogPage'
+import { InvoiceCreatePage } from './pages/billing/InvoiceCreatePage'
+import { InvoicePreviewPage } from './pages/billing/InvoicePreviewPage'
 
 function LegacyCoworkingDetailRedirect() {
   const { featuredSpaceId } = useParams<{ featuredSpaceId: string }>()
@@ -68,6 +77,11 @@ function LayoutDefaultIndexRedirect() {
   return <Navigate to={getDefaultLayoutPathForUser()} replace />
 }
 
+function InvoiceDetailRedirect() {
+  const { invoiceId } = useParams<{ invoiceId: string }>()
+  return <Navigate to={`/layout/billing/invoices/${encodeURIComponent(invoiceId ?? '')}/preview`} replace />
+}
+
 function App() {
   return (
     <Routes>
@@ -91,6 +105,21 @@ function App() {
         <Route path="dashboard/*" element={<PlaceholderPage title="Dashboard" />} />
         <Route path="priority/workspace" element={<Navigate to="/layout/coworking/priority" replace />} />
         <Route path="priority/*" element={<PlaceholderPage title="Priority" />} />
+
+        <Route path="billing" element={<BillingLayout />}>
+          <Route index element={<Navigate to="invoices" replace />} />
+          <Route path="invoices" element={<BillingInvoicesPage />} />
+          <Route path="clients" element={<BillingClientsPage />} />
+          <Route path="settings" element={<BillingSettingsPage />} />
+          <Route path="settings/state-gst" element={<StateGstPage />} />
+          <Route path="product-catalog" element={<ProductCatalogPage />} />
+        </Route>
+        <Route path="billing/clients/new" element={<BillingClientFormPage />} />
+        <Route path="billing/clients/:clientId" element={<BillingClientFormPage />} />
+        <Route path="billing/invoices/new" element={<InvoiceCreatePage />} />
+        <Route path="billing/invoices/:invoiceId/edit" element={<InvoiceCreatePage />} />
+        <Route path="billing/invoices/:invoiceId/preview" element={<InvoicePreviewPage />} />
+        <Route path="billing/invoices/:invoiceId" element={<InvoiceDetailRedirect />} />
 
         <Route path="enquiry" element={<EnquiryListPage />} />
         <Route path="enquiry/add" element={<EnquiryFormPage />} />

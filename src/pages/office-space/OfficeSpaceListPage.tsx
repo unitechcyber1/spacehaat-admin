@@ -1,11 +1,22 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import {
+  CheckCircleIcon,
+  EyeIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  UserCircleIcon,
+  XCircleIcon,
+} from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Input } from '../../components/Input'
+import { ListPageMeta } from '../../components/ListPageMeta'
+import { ListPagination } from '../../components/ListPagination'
 import { PageShell } from '../../components/PageShell'
+import { UserDetailsModal } from '../../components/UserDetailsModal'
 import { SearchableCitySelect } from '../../components/SearchableCitySelect'
 import { Table, Td, Th, Tr } from '../../components/Table'
 import { cn } from '../../lib/ui'
@@ -37,6 +48,51 @@ function statusClass(status: string | undefined) {
   if (status === 'reject') return 'text-rose-700'
   if (status === 'pending') return 'text-amber-700'
   return 'text-slate-600'
+}
+
+function statusPillClass(status: string | undefined) {
+  if (status === 'approve') return 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+  if (status === 'reject') return 'bg-rose-50 text-rose-700 ring-rose-200'
+  if (status === 'pending') return 'bg-amber-50 text-amber-800 ring-amber-200'
+  return 'bg-slate-50 text-slate-700 ring-slate-200'
+}
+
+function iconButtonClass(tone: 'slate' | 'emerald' | 'amber' | 'rose' | 'violet' = 'slate') {
+  const toneClass =
+    tone === 'emerald'
+      ? 'text-emerald-700 hover:bg-emerald-50 hover:text-emerald-900'
+      : tone === 'amber'
+        ? 'text-amber-700 hover:bg-amber-50 hover:text-amber-900'
+        : tone === 'rose'
+          ? 'text-rose-700 hover:bg-rose-50 hover:text-rose-900'
+          : tone === 'violet'
+            ? 'text-violet-700 hover:bg-violet-50 hover:text-violet-900'
+            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+
+  return cn(
+    'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ring-slate-200/80 transition',
+    'focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-40',
+    toneClass,
+  )
+}
+
+function IconTooltip({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <span className="group relative inline-flex">
+      {children}
+      <span
+        role="tooltip"
+        className={cn(
+          'pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap',
+          'rounded-lg bg-slate-900 px-2 py-1 text-xs font-medium text-white shadow-lg',
+          'opacity-0 transition-opacity duration-150',
+          'group-hover:opacity-100 group-focus-within:opacity-100',
+        )}
+      >
+        {label}
+      </span>
+    </span>
+  )
 }
 
 function microLocationLine(row: OfficeSpaceListItem): string {
@@ -104,6 +160,7 @@ export function OfficeSpaceListPage() {
     name: string
     email: string
     phone: string
+    role: 'Admin' | 'User'
   } | null>(null)
 
   const params = useMemo(
@@ -228,6 +285,7 @@ export function OfficeSpaceListPage() {
       name: u?.name ?? '',
       email: u?.email ?? '',
       phone: u?.phone_number ?? '',
+      role: userKindLabel(row.user),
     })
   }
 
@@ -235,8 +293,6 @@ export function OfficeSpaceListPage() {
   const total = data?.totalRecords ?? data?.data?.length ?? 0
   const rows = (data?.data ?? []) as OfficeSpaceListItem[]
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const canPrev = page > 1
-  const canNext = page < totalPages
 
   return (
     <>
@@ -249,11 +305,11 @@ export function OfficeSpaceListPage() {
           </Button>
         }
       >
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-surface p-1 shadow-md  ring-1 ring-line">
-          <div className="rounded-[0.875rem] bg-surface p-5 sm:p-6">
-            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="filter-card">
+          <div className="filter-card-inner">
+            <div className="filter-card-head">
               <div>
-                <h2 className="text-sm font-semibold text-slate-900">Filters</h2>
+                <h2 className="filter-card-title">Filters</h2>
                 <p className="text-xs text-slate-500">
                   Product ID, name, and building name wait 1s after you pause typing (same as Angular).
                 </p>
@@ -279,7 +335,7 @@ export function OfficeSpaceListPage() {
               </Button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="filter-card-body cols-6">
               <div className="min-w-0">
                 <label className={filterLabelClass} htmlFor="os-filter-product-id">
                   Product ID
@@ -375,207 +431,222 @@ export function OfficeSpaceListPage() {
                   <option value="reject">Disable</option>
                 </select>
               </div>
-              <div className="min-w-0">
-                <label className={filterLabelClass} htmlFor="os-filter-pagesize">
-                  Per page
-                </label>
-                <select
-                  id="os-filter-pagesize"
-                  className={filterSelectClass}
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPage(1)
-                    setPageSize(Number(e.target.value))
-                  }}
+            </div>
+          </div>
+        </div>
+
+        <ListPageMeta
+          loading={listQ.isLoading}
+          loadingLabel="Loading office spaces…"
+          total={total}
+          noun="office space"
+          error={listQ.isError ? (listQ.error as Error)?.message ?? 'Failed to load' : null}
+        />
+
+        <Table>
+          <thead className="bg-surface-2">
+            <tr>
+              <Th className="w-[22%]">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
+                  onClick={() => toggleSort('name')}
                 >
-                  {[5, 10, 25, 100].map((n) => (
-                    <option key={n} value={n}>
-                      {n} per page
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/60 bg-slate-50/80 px-4 py-3">
-          <div className="text-sm text-slate-600">
+                  Name {sortIndicator('name')}
+                </button>
+              </Th>
+              <Th className="w-[10%]">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
+                  onClick={() => toggleSort('productId')}
+                >
+                  ID {sortIndicator('productId')}
+                </button>
+              </Th>
+              <Th className="w-[8%] text-center">User</Th>
+              <Th className="w-[12%]">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
+                  onClick={() => toggleSort('city')}
+                >
+                  City {sortIndicator('city')}
+                </button>
+              </Th>
+              <Th className="w-[18%]">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
+                  onClick={() => toggleSort('location')}
+                >
+                  Location {sortIndicator('location')}
+                </button>
+              </Th>
+              <Th className="w-[10%]">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
+                  onClick={() => toggleSort('addedon')}
+                >
+                  Added {sortIndicator('addedon')}
+                </button>
+              </Th>
+              <Th className="w-[10%]">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
+                  onClick={() => toggleSort('status')}
+                >
+                  Status {sortIndicator('status')}
+                </button>
+              </Th>
+              <Th className="w-[10%] text-center">Actions</Th>
+            </tr>
+          </thead>
+          <tbody>
             {listQ.isLoading ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-violet-500" aria-hidden />
-                Loading…
-              </span>
+              <Tr>
+                <Td colSpan={8} className="py-16 text-center text-sm text-slate-500">
+                  Loading…
+                </Td>
+              </Tr>
+            ) : rows.length === 0 ? (
+              <Tr>
+                <Td colSpan={8} className="py-16 text-center text-sm text-slate-500">
+                  No office spaces match these filters.
+                </Td>
+              </Tr>
             ) : (
-              <>
-                <span className="font-semibold text-slate-800">{total}</span>
-                <span className="text-slate-500"> record{total !== 1 ? 's' : ''}</span>
-              </>
-            )}
-            {listQ.isError ? (
-              <span className="ml-2 text-rose-600">{(listQ.error as Error)?.message ?? 'Failed to load'}</span>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="secondary"
-              className="bg-surface"
-              disabled={!canPrev}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <div className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200/80">
-              Page {page} of {totalPages}
-            </div>
-            <Button
-              variant="secondary"
-              className="bg-surface"
-              disabled={!canNext}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-
-        <div className="mt-5 overflow-x-auto">
-          <Table>
-            <thead className="bg-surface-2">
-              <tr>
-                <Th>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                    onClick={() => toggleSort('productId')}
-                  >
-                    Product Id {sortIndicator('productId')}
-                  </button>
-                </Th>
-                <Th>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                    onClick={() => toggleSort('name')}
-                  >
-                    Name {sortIndicator('name')}
-                  </button>
-                </Th>
-                <Th>User</Th>
-                <Th>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                    onClick={() => toggleSort('city')}
-                  >
-                    City {sortIndicator('city')}
-                  </button>
-                </Th>
-                <Th>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                    onClick={() => toggleSort('location')}
-                  >
-                    Location {sortIndicator('location')}
-                  </button>
-                </Th>
-                <Th>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                    onClick={() => toggleSort('addedon')}
-                  >
-                    Added on {sortIndicator('addedon')}
-                  </button>
-                </Th>
-                <Th>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                    onClick={() => toggleSort('status')}
-                  >
-                    Status {sortIndicator('status')}
-                  </button>
-                </Th>
-                <Th>Edit</Th>
-                <Th>Preview</Th>
-                <Th>Action</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {!listQ.isLoading && rows.length === 0 ? (
-                <Tr>
-                  <Td colSpan={10} className="py-16 text-center text-sm text-slate-500">
-                    No office spaces match these filters.
-                  </Td>
-                </Tr>
-              ) : null}
-              {rows.map((row) => {
+              rows.map((row) => {
                 const id = officeRowId(row)
+                const canPreview = row.status === 'approve'
                 return (
                   <Tr key={id || row.name}>
-                    <Td className="whitespace-nowrap text-slate-800">{row.productId ?? ''}</Td>
-                    <Td className="min-w-[140px] font-medium text-slate-900">{row.name ?? '—'}</Td>
-                    <Td>
-                      <Button
+                    <Td className="align-middle">
+                      <div className="min-w-0 max-w-[280px]">
+                        <div className="line-clamp-2 font-semibold leading-snug text-slate-900">
+                          {row.name ?? '—'}
+                        </div>
+                        {row.slug ? (
+                          <div className="mt-0.5 truncate text-xs text-slate-500">/{row.slug}</div>
+                        ) : null}
+                      </div>
+                    </Td>
+                    <Td className="align-middle">
+                      <span className="tnum text-xs font-medium text-slate-600">{row.productId ?? '—'}</span>
+                    </Td>
+                    <Td className="align-middle">
+                      <button
                         type="button"
-                        variant="ghost"
-                        className="text-violet-700"
-                        onClick={() => openUserDetails(row)}
+                        className="user-chip"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          openUserDetails(row)
+                        }}
+                        aria-label={`View ${userKindLabel(row.user)} details`}
                       >
-                        {userKindLabel(row.user)}
-                      </Button>
+                        <UserCircleIcon aria-hidden />
+                        <span className="truncate">{userKindLabel(row.user)}</span>
+                      </button>
                     </Td>
-                    <Td>{cityName(row)}</Td>
-                    <Td className="max-w-[220px] text-sm text-slate-700">{microLocationLine(row)}</Td>
-                    <Td className="whitespace-nowrap text-sm">{formatAddedOn(row.added_on)}</Td>
-                    <Td className={cn('font-medium', statusClass(row.status))}>{statusLabel(row.status)}</Td>
-                    <Td>
-                      <Button
-                        variant="ghost"
-                        disabled={!id}
-                        onClick={() => navigate(`/layout/office-space/detail/${id}`)}
+                    <Td className="align-middle">
+                      <span className="truncate text-sm text-slate-700">{cityName(row)}</span>
+                    </Td>
+                    <Td className="align-middle">
+                      <span className="line-clamp-2 text-sm text-slate-700">{microLocationLine(row)}</span>
+                    </Td>
+                    <Td className="align-middle whitespace-nowrap text-sm text-slate-600">
+                      {formatAddedOn(row.added_on)}
+                    </Td>
+                    <Td className="align-middle">
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset whitespace-nowrap',
+                          statusPillClass(row.status),
+                          statusClass(row.status),
+                        )}
                       >
-                        Edit
-                      </Button>
+                        {statusLabel(row.status)}
+                      </span>
                     </Td>
-                    <Td>
-                      <Button variant="ghost" onClick={() => onPreview(row)}>
-                        Preview
-                      </Button>
-                    </Td>
-                    <Td>
-                      <div className="flex flex-wrap gap-1">
-                        <Button
-                          variant="ghost"
-                          className="text-emerald-700"
-                          onClick={() => setConfirm({ type: 'enable', row })}
-                        >
-                          Enable
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="text-amber-700"
-                          onClick={() => setConfirm({ type: 'disable', row })}
-                        >
-                          Disable
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="text-rose-700"
-                          onClick={() => setConfirm({ type: 'delete', id, name: row.name ?? '' })}
-                        >
-                          Delete
-                        </Button>
+                    <Td className="align-middle">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <IconTooltip label="Edit">
+                          <button
+                            type="button"
+                            className={iconButtonClass('slate')}
+                            disabled={!id}
+                            onClick={() => navigate(`/layout/office-space/detail/${id}`)}
+                            aria-label="Edit office space"
+                          >
+                            <PencilSquareIcon className="h-5 w-5" aria-hidden />
+                          </button>
+                        </IconTooltip>
+                        <IconTooltip label={canPreview ? 'Preview on site' : 'Preview (enabled only)'}>
+                          <button
+                            type="button"
+                            className={iconButtonClass(canPreview ? 'slate' : 'amber')}
+                            onClick={() => onPreview(row)}
+                            aria-label="Preview office space"
+                          >
+                            <EyeIcon className="h-5 w-5" aria-hidden />
+                          </button>
+                        </IconTooltip>
+                        <IconTooltip label="Enable">
+                          <button
+                            type="button"
+                            className={iconButtonClass('emerald')}
+                            onClick={() => setConfirm({ type: 'enable', row })}
+                            aria-label="Enable office space"
+                          >
+                            <CheckCircleIcon className="h-5 w-5" aria-hidden />
+                          </button>
+                        </IconTooltip>
+                        <IconTooltip label="Disable">
+                          <button
+                            type="button"
+                            className={iconButtonClass('amber')}
+                            onClick={() => setConfirm({ type: 'disable', row })}
+                            aria-label="Disable office space"
+                          >
+                            <XCircleIcon className="h-5 w-5" aria-hidden />
+                          </button>
+                        </IconTooltip>
+                        <IconTooltip label="Delete">
+                          <button
+                            type="button"
+                            className={iconButtonClass('rose')}
+                            onClick={() => setConfirm({ type: 'delete', id, name: row.name ?? '' })}
+                            aria-label="Delete office space"
+                          >
+                            <TrashIcon className="h-5 w-5" aria-hidden />
+                          </button>
+                        </IconTooltip>
                       </div>
                     </Td>
                   </Tr>
                 )
-              })}
-            </tbody>
-          </Table>
-        </div>
+              })
+            )}
+          </tbody>
+        </Table>
+
+        <ListPagination
+          currentPage={Math.min(page, totalPages)}
+          pageCount={totalPages}
+          total={total}
+          pageSize={pageSize}
+          pageSizeOptions={[5, 10, 25, 100]}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size)
+            setPage(1)
+          }}
+          loading={listQ.isLoading}
+          className="mt-0 border-0 bg-transparent px-1 shadow-none ring-0"
+        />
       </PageShell>
 
       <ConfirmDialog
@@ -611,39 +682,14 @@ export function OfficeSpaceListPage() {
         }
       />
 
-      {userDialog ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="os-user-dialog-title"
-            className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl"
-          >
-            <h2 id="os-user-dialog-title" className="text-lg font-semibold text-slate-900">
-              User details
-            </h2>
-            <dl className="mt-4 space-y-2 text-sm">
-              <div>
-                <dt className="text-slate-500">Name</dt>
-                <dd className="text-slate-900">{userDialog.name || '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Email</dt>
-                <dd className="text-slate-900">{userDialog.email || '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Phone</dt>
-                <dd className="text-slate-900">{userDialog.phone || '—'}</dd>
-              </div>
-            </dl>
-            <div className="mt-6 flex justify-end">
-              <Button type="button" variant="primary" onClick={() => setUserDialog(null)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <UserDetailsModal
+        open={Boolean(userDialog)}
+        onClose={() => setUserDialog(null)}
+        name={userDialog?.name}
+        email={userDialog?.email}
+        phone={userDialog?.phone}
+        role={userDialog?.role}
+      />
     </>
   )
 }

@@ -1,39 +1,33 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { Button } from '../../../components/Button'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
+import { IconAction } from '../../../components/IconAction'
 import { Input } from '../../../components/Input'
+import { ListFilterCard } from '../../../components/ListFilterCard'
+import { ListPageMeta } from '../../../components/ListPageMeta'
+import { ListPagination } from '../../../components/ListPagination'
 import { Modal } from '../../../components/Modal'
 import { PageShell } from '../../../components/PageShell'
+import { BoolBadge } from '../../../components/StatusBadge'
 import { Table, Td, Th, Tr } from '../../../components/Table'
+import { filterLabelClass, resolveListTotal } from '../../../lib/listPageUi'
 import { getCities } from '../../../services/locations/city.service'
 import { getMicroLocations, removeMicroLocation, saveMicroLocation } from '../../../services/locations/microLocation.service'
 import type { City, MicroLocation } from '../../../services/locations/types'
-
-function boolBadge(v?: boolean) {
-  return (
-    <span
-      className={[
-        'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-        v ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600',
-      ].join(' ')}
-    >
-      {v ? 'Yes' : 'No'}
-    </span>
-  )
-}
 
 export function MicroLocationPage() {
   const qc = useQueryClient()
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
   const [cityId, setCityId] = useState('')
-  const limit = 10
+  const [pageSize, setPageSize] = useState(10)
 
   const params = useMemo(
-    () => ({ limit, page, name: q.trim().toLowerCase(), city: cityId }),
-    [limit, page, q, cityId],
+    () => ({ limit: pageSize, page, name: q.trim().toLowerCase(), city: cityId }),
+    [pageSize, page, q, cityId],
   )
 
   const microQ = useQuery({
@@ -74,10 +68,9 @@ export function MicroLocationPage() {
     onError: (e: any) => toast.error(e?.message ?? 'Failed to delete micro-location'),
   })
 
-  const total = microQ.data?.totalRecords ?? microQ.data?.data?.length ?? 0
   const rows = (microQ.data?.data ?? []) as MicroLocation[]
-  const canPrev = page > 1
-  const canNext = page * limit < total
+  const total = resolveListTotal(microQ.data, rows.length)
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   return (
     <>
@@ -85,81 +78,68 @@ export function MicroLocationPage() {
         title="Micro-locations"
         description="Neighborhood-level locations under cities."
         actions={
-          <>
-            <div className="w-full sm:w-72">
-              <Input
-                value={q}
-                onChange={(e) => {
-                  setPage(1)
-                  setQ(e.target.value)
-                }}
-                placeholder="Search by name…"
-              />
-            </div>
-            <div className="w-full sm:w-64">
-              <select
-                className="w-full rounded-lg bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-inset ring-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                value={cityId}
-                onChange={(e) => {
-                  setPage(1)
-                  setCityId(e.target.value)
-                }}
-              >
-                <option value="">All cities</option>
-                {cities.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <Button
-              variant="primary"
-              onClick={() => {
-                setEditing({
-                  name: '',
-                  city: '',
-                  latitude: '',
-                  longitude: '',
-                  for_coWorking: false,
-                  for_office: false,
-                  for_coLiving: false,
-                  for_flatspace: false,
-                  for_buildings: false,
-                  locationImage: {},
-                })
-                setOpen(true)
-              }}
-            >
-              Add micro-location
-            </Button>
-          </>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setEditing({
+                name: '',
+                city: '',
+                latitude: '',
+                longitude: '',
+                for_coWorking: false,
+                for_office: false,
+                for_coLiving: false,
+                for_flatspace: false,
+                for_buildings: false,
+                locationImage: {},
+              })
+              setOpen(true)
+            }}
+          >
+            Add micro-location
+          </Button>
         }
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-sm text-slate-600">
-            {microQ.isLoading ? 'Loading…' : `${total} total`}
-            {microQ.isError ? (
-              <span className="ml-2 text-rose-600">
-                {(microQ.error as any)?.message ?? 'Failed to load'}
-              </span>
-            ) : null}
+        <ListFilterCard
+          description="Search micro-locations by name or filter by city."
+          onReset={() => { setQ(''); setCityId(''); setPage(1); setPageSize(10) }}
+        >
+          <div className="min-w-0 sm:col-span-2">
+            <label className={filterLabelClass} htmlFor="micro-location-search">Name</label>
+            <Input
+              id="micro-location-search"
+              value={q}
+              onChange={(e) => { setPage(1); setQ(e.target.value) }}
+              placeholder="Search by name…"
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" disabled={!canPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              Prev
-            </Button>
-            <div className="text-sm text-slate-600">
-              Page <span className="font-medium text-slate-900">{page}</span>
-            </div>
-            <Button variant="secondary" disabled={!canNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
+          <div className="min-w-0">
+            <label className={filterLabelClass} htmlFor="micro-location-city">City</label>
+            <select
+              id="micro-location-city"
+              className="w-full rounded-lg bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-inset ring-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900"
+              value={cityId}
+              onChange={(e) => { setPage(1); setCityId(e.target.value) }}
+            >
+              <option value="">All cities</option>
+              {cities.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
+        </ListFilterCard>
+
+        <ListPageMeta
+          loading={microQ.isLoading}
+          total={total}
+          noun="micro-location"
+          error={microQ.isError ? (microQ.error as Error)?.message ?? 'Failed to load' : null}
+        />
 
         <Table>
-          <thead className="bg-slate-50">
+          <thead className="bg-surface-2">
             <tr>
               <Th>Name</Th>
               <Th>City</Th>
@@ -176,15 +156,15 @@ export function MicroLocationPage() {
               <Tr key={m.id}>
                 <Td className="font-medium text-slate-900">{m.name}</Td>
                 <Td>{(m as any)?.city?.name ?? '-'}</Td>
-                <Td>{boolBadge((m as any).for_coWorking)}</Td>
-                <Td>{boolBadge((m as any).for_office)}</Td>
-                <Td>{boolBadge((m as any).for_coLiving)}</Td>
-                <Td>{boolBadge((m as any).for_flatspace)}</Td>
-                <Td>{boolBadge((m as any).for_buildings)}</Td>
+                <Td className="text-center"><BoolBadge value={(m as any).for_coWorking} /></Td>
+                <Td className="text-center"><BoolBadge value={(m as any).for_office} /></Td>
+                <Td className="text-center"><BoolBadge value={(m as any).for_coLiving} /></Td>
+                <Td className="text-center"><BoolBadge value={(m as any).for_flatspace} /></Td>
+                <Td className="text-center"><BoolBadge value={(m as any).for_buildings} /></Td>
                 <Td>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
+                  <div className="table-actions">
+                    <IconAction
+                      label="Edit"
                       onClick={() => {
                         setEditing({
                           id: m.id,
@@ -203,28 +183,36 @@ export function MicroLocationPage() {
                         setOpen(true)
                       }}
                     >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="text-rose-700 hover:bg-rose-50"
-                      onClick={() => setConfirm({ id: m.id, name: m.name })}
-                    >
-                      Delete
-                    </Button>
+                      <PencilSquareIcon className="h-5 w-5" aria-hidden />
+                    </IconAction>
+                    <IconAction label="Delete" tone="rose" onClick={() => setConfirm({ id: m.id, name: m.name })}>
+                      <TrashIcon className="h-5 w-5" aria-hidden />
+                    </IconAction>
                   </div>
                 </Td>
               </Tr>
             ))}
             {!microQ.isLoading && rows.length === 0 ? (
               <Tr>
-                <Td className="py-10 text-center text-slate-500" colSpan={8}>
-                  No micro-locations found.
+                <Td className="list-empty" colSpan={8}>
+                  <strong>No micro-locations found</strong>
+                  Try another search or add a micro-location.
                 </Td>
               </Tr>
             ) : null}
           </tbody>
         </Table>
+
+        <ListPagination
+          currentPage={Math.min(page, totalPages)}
+          pageCount={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          loading={microQ.isLoading}
+          className="border-0 bg-transparent px-0 shadow-none ring-0"
+        />
       </PageShell>
 
       <Modal
@@ -345,4 +333,3 @@ export function MicroLocationPage() {
     </>
   )
 }
-

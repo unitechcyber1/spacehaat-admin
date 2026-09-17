@@ -1,14 +1,26 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import {
+  CheckCircleIcon,
+  EyeIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  XCircleIcon,
+} from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { IconAction } from '../../components/IconAction'
 import { Input } from '../../components/Input'
+import { ListFilterCard } from '../../components/ListFilterCard'
+import { ListPageMeta } from '../../components/ListPageMeta'
+import { ListPagination } from '../../components/ListPagination'
 import { PageShell } from '../../components/PageShell'
+import { StatusBadge } from '../../components/StatusBadge'
 import { Table, Td, Th, Tr } from '../../components/Table'
-import { cn } from '../../lib/ui'
 import { env } from '../../lib/env'
+import { filterLabelClass, resolveListTotal, sortIndicator } from '../../lib/listPageUi'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { changeBlogStatus, deleteBlog, getBlogs } from '../../services/blog/blog.service'
 import { BLOG_TYPES, type BlogRecord } from '../../services/blog/types'
@@ -17,22 +29,8 @@ function blogRowId(row: BlogRecord): string {
   return String(row.id ?? row._id ?? '')
 }
 
-function statusLabel(status: string | undefined) {
-  if (status === 'approve') return 'ENABLED'
-  if (status === 'reject') return 'DISABLED'
-  if (status === 'pending') return 'PENDING'
-  return status ?? '—'
-}
-
-function statusClass(status: string | undefined) {
-  if (status === 'approve') return 'text-emerald-700'
-  if (status === 'reject') return 'text-rose-700'
-  if (status === 'pending') return 'text-amber-700'
-  return 'text-slate-600'
-}
-
 function blogTypeLabel(value: string | undefined) {
-  if (!value) return 'No Blog Type'
+  if (!value) return '—'
   return BLOG_TYPES.find((t) => t.value === value)?.label ?? value
 }
 
@@ -91,18 +89,16 @@ export function BlogListPage() {
     mutationFn: ({ row, next }: { row: BlogRecord; next: string }) =>
       changeBlogStatus({ ...row, status: next }),
     onSuccess: (_, v) => {
-      toast.success(`Blog Status Changed To ${v.next === 'approve' ? 'ENABLE' : 'DISABLE'}`)
+      toast.success(v.next === 'approve' ? 'Blog enabled' : 'Blog disabled')
       setConfirm(null)
       qc.invalidateQueries({ queryKey: ['blogs'] })
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Update failed'),
   })
 
-  const total = listQ.data?.totalRecords ?? listQ.data?.data?.length ?? 0
   const rows = (listQ.data?.data ?? []) as BlogRecord[]
+  const total = resolveListTotal(listQ.data, rows.length)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const canPrev = page > 1
-  const canNext = page < totalPages
 
   function toggleSort(col: SortCol) {
     if (sortBy !== col) {
@@ -115,11 +111,6 @@ export function BlogListPage() {
       setOrderBy('')
     }
     setPage(1)
-  }
-
-  function sortMark(col: string) {
-    if (sortBy !== col) return '↕'
-    return orderBy === '-1' ? '↓' : '↑'
   }
 
   function resetFilters() {
@@ -143,178 +134,109 @@ export function BlogListPage() {
     <>
       <PageShell
         title="Blog"
-        description="Manage blog posts — type, slug, status, preview. Matches the legacy blog table."
+        description="Manage blog posts — type, slug, status, and preview."
         actions={
           <Button variant="primary" onClick={() => navigate('/layout/blog/add')}>
-            Add Blog
+            Add blog
           </Button>
         }
       >
-        <div className="mb-4 flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200/70 bg-surface p-4 shadow-sm ring-1 ring-slate-200/50">
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="blog-search">
-              Search name
-            </label>
+        <ListFilterCard description="Search by post name or heading." onReset={resetFilters}>
+          <div className="min-w-0 sm:col-span-2">
+            <label className={filterLabelClass} htmlFor="blog-search">Search</label>
             <Input
               id="blog-search"
               value={nameInput}
-              onChange={(e) => {
-                setPage(1)
-                setNameInput(e.target.value)
-              }}
+              onChange={(e) => { setPage(1); setNameInput(e.target.value) }}
               placeholder="Filter by name…"
-              className="rounded-xl"
             />
           </div>
-          <Button type="button" variant="secondary" onClick={resetFilters}>
-            Reset filters
-          </Button>
-        </div>
+        </ListFilterCard>
 
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">
-            {listQ.isLoading ? 'Loading…' : `${total} records`}
-            {listQ.isError ? (
-              <span className="ml-2 text-rose-600">{(listQ.error as Error)?.message ?? 'Failed to load'}</span>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs text-slate-500" htmlFor="blog-page-size">
-              Per page
-            </label>
-            <select
-              id="blog-page-size"
-              className="rounded-xl border-0 bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-violet-500"
-              value={pageSize}
-              onChange={(e) => {
-                setPage(1)
-                setPageSize(Number(e.target.value))
-              }}
-            >
-              {[5, 10, 25, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <Button variant="secondary" disabled={!canPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              Prev
-            </Button>
-            <span className="text-sm text-slate-600">
-              Page <span className="font-medium text-slate-900">{page}</span> / {totalPages}
-            </span>
-            <Button variant="secondary" disabled={!canNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+        <ListPageMeta
+          loading={listQ.isLoading}
+          total={total}
+          noun="post"
+          error={listQ.isError ? (listQ.error as Error)?.message ?? 'Failed to load' : null}
+        />
 
         <Table>
-          <thead className="bg-slate-50">
+          <thead className="bg-surface-2">
             <tr>
-              <Th>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                  onClick={() => toggleSort('blog_type')}
-                >
-                  Blog Type {sortMark('blog_type')}
+              <Th className="w-[22%]">
+                <button type="button" className="flex items-center gap-1 font-semibold uppercase tracking-wide text-muted hover:text-brand" onClick={() => toggleSort('blog_type')}>
+                  Type {sortIndicator(sortBy === 'blog_type', orderBy)}
                 </button>
               </Th>
-              <Th>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                  onClick={() => toggleSort('slug')}
-                >
-                  Slug {sortMark('slug')}
+              <Th className="w-[38%]">
+                <button type="button" className="flex items-center gap-1 font-semibold uppercase tracking-wide text-muted hover:text-brand" onClick={() => toggleSort('slug')}>
+                  Slug {sortIndicator(sortBy === 'slug', orderBy)}
                 </button>
               </Th>
-              <Th>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                  onClick={() => toggleSort('status')}
-                >
-                  Status {sortMark('status')}
+              <Th className="w-[14%]">
+                <button type="button" className="flex items-center gap-1 font-semibold uppercase tracking-wide text-muted hover:text-brand" onClick={() => toggleSort('status')}>
+                  Status {sortIndicator(sortBy === 'status', orderBy)}
                 </button>
               </Th>
-              <Th>Edit</Th>
-              <Th>Preview</Th>
-              <Th>Action</Th>
+              <Th className="w-[26%] text-center">Actions</Th>
             </tr>
           </thead>
           <tbody>
-            {!listQ.isLoading && rows.length === 0 ? (
-              <Tr>
-                <Td colSpan={6} className="py-12 text-center text-sm text-slate-500">
-                  No blog posts. Add one with “Add Blog”.
-                </Td>
-              </Tr>
-            ) : null}
-            {rows.map((row) => {
-              const id = blogRowId(row)
-              return (
-                <Tr key={id || row.slug}>
-                  <Td className="font-medium text-slate-900">{blogTypeLabel(row.blog_type)}</Td>
-                  <Td className="max-w-[240px] truncate" title={row.slug}>
-                    {row.slug || '—'}
-                  </Td>
-                  <Td className={cn('font-medium', statusClass(row.status))}>{statusLabel(row.status)}</Td>
-                  <Td>
-                    <Button
-                      variant="ghost"
-                      disabled={!id}
-                      onClick={() => navigate(`/layout/blog/detail/${id}`)}
-                    >
-                      Edit
-                    </Button>
-                  </Td>
-                  <Td>
-                    <Button variant="ghost" onClick={() => onPreview(row)}>
-                      Preview
-                    </Button>
-                  </Td>
-                  <Td>
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        variant="ghost"
-                        className="text-emerald-700"
-                        onClick={() => setConfirm({ type: 'enable', row })}
-                      >
-                        Enable
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="text-amber-700"
-                        onClick={() => setConfirm({ type: 'disable', row })}
-                      >
-                        Disable
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="text-rose-700"
-                        onClick={() => setConfirm({ type: 'delete', row })}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </Td>
-                </Tr>
-              )
-            })}
+            {listQ.isLoading ? (
+              <Tr><Td colSpan={4} className="list-empty">Loading…</Td></Tr>
+            ) : rows.length === 0 ? (
+              <Tr><Td colSpan={4} className="list-empty"><strong>No blog posts</strong>Add one with “Add blog”.</Td></Tr>
+            ) : (
+              rows.map((row) => {
+                const id = blogRowId(row)
+                const canPreview = row.status === 'approve'
+                return (
+                  <Tr key={id || row.slug}>
+                    <Td className="align-middle text-sm font-medium text-ink">{blogTypeLabel(row.blog_type)}</Td>
+                    <Td className="align-middle max-w-[280px] truncate text-sm text-muted" title={row.slug}>{row.slug || '—'}</Td>
+                    <Td className="align-middle"><StatusBadge status={row.status} /></Td>
+                    <Td className="align-middle">
+                      <div className="table-actions">
+                        <IconAction label="Edit" disabled={!id} onClick={() => navigate(`/layout/blog/detail/${id}`)}>
+                          <PencilSquareIcon className="h-5 w-5" aria-hidden />
+                        </IconAction>
+                        <IconAction label={canPreview ? 'Preview' : 'Preview (enabled only)'} tone={canPreview ? 'slate' : 'amber'} onClick={() => onPreview(row)}>
+                          <EyeIcon className="h-5 w-5" aria-hidden />
+                        </IconAction>
+                        <IconAction label="Enable" tone="emerald" onClick={() => setConfirm({ type: 'enable', row })}>
+                          <CheckCircleIcon className="h-5 w-5" aria-hidden />
+                        </IconAction>
+                        <IconAction label="Disable" tone="amber" onClick={() => setConfirm({ type: 'disable', row })}>
+                          <XCircleIcon className="h-5 w-5" aria-hidden />
+                        </IconAction>
+                        <IconAction label="Delete" tone="rose" onClick={() => setConfirm({ type: 'delete', row })}>
+                          <TrashIcon className="h-5 w-5" aria-hidden />
+                        </IconAction>
+                      </div>
+                    </Td>
+                  </Tr>
+                )
+              })
+            )}
           </tbody>
         </Table>
+
+        <ListPagination
+          currentPage={Math.min(page, totalPages)}
+          pageCount={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          loading={listQ.isLoading}
+          className="border-0 bg-transparent px-0 shadow-none ring-0"
+        />
       </PageShell>
 
       <ConfirmDialog
         open={confirm?.type === 'delete'}
         title="Delete blog?"
-        description={
-          confirm?.type === 'delete'
-            ? `Are you sure you want to delete “${confirm.row.heading || confirm.row.slug || 'this blog'}”?`
-            : undefined
-        }
+        description={confirm?.type === 'delete' ? `Remove “${confirm.row.heading || confirm.row.slug || 'this blog'}”?` : undefined}
         confirmText="Delete"
         danger
         onCancel={() => setConfirm(null)}
@@ -328,32 +250,20 @@ export function BlogListPage() {
       <ConfirmDialog
         open={confirm?.type === 'enable'}
         title="Enable blog?"
-        description={
-          confirm?.type === 'enable'
-            ? `Set “${confirm.row.heading || confirm.row.slug || 'this blog'}” to ENABLED?`
-            : undefined
-        }
+        description={confirm?.type === 'enable' ? `Set “${confirm.row.heading || confirm.row.slug}” to enabled?` : undefined}
         confirmText="Enable"
         onCancel={() => setConfirm(null)}
-        onConfirm={() =>
-          confirm?.type === 'enable' && statusMut.mutate({ row: confirm.row, next: 'approve' })
-        }
+        onConfirm={() => confirm?.type === 'enable' && statusMut.mutate({ row: confirm.row, next: 'approve' })}
       />
 
       <ConfirmDialog
         open={confirm?.type === 'disable'}
         title="Disable blog?"
-        description={
-          confirm?.type === 'disable'
-            ? `Set “${confirm.row.heading || confirm.row.slug || 'this blog'}” to DISABLED?`
-            : undefined
-        }
+        description={confirm?.type === 'disable' ? `Set “${confirm.row.heading || confirm.row.slug}” to disabled?` : undefined}
         confirmText="Disable"
         danger
         onCancel={() => setConfirm(null)}
-        onConfirm={() =>
-          confirm?.type === 'disable' && statusMut.mutate({ row: confirm.row, next: 'reject' })
-        }
+        onConfirm={() => confirm?.type === 'disable' && statusMut.mutate({ row: confirm.row, next: 'reject' })}
       />
     </>
   )

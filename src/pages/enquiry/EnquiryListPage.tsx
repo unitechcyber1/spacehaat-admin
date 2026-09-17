@@ -444,6 +444,8 @@ export function EnquiryListPage() {
     setSalesFilterUserId('')
     setSortBy('')
     setOrderBy('')
+    setShowAdvanced(false)
+    setPage(1)
   }
 
   function toggleStage(value: string) {
@@ -548,6 +550,19 @@ export function EnquiryListPage() {
 
       {/* ---------- search + filters ---------- */}
       <div className="card leads-filter-card">
+        <div className="filter-card-head">
+          <div className="min-w-0">
+            <h2 className="filter-card-title">Filters</h2>
+            <p className="filter-card-desc">
+              Search by name, email, or phone; narrow by date, space type, stage, and more.
+            </p>
+          </div>
+          <Button type="button" size="sm" variant="secondary" className="shrink-0" onClick={resetFilters}>
+            <ArrowPathIcon />
+            Reset filters
+          </Button>
+        </div>
+
         <div className="leads-search-wrap">
           <MagnifyingGlassIcon />
           <input
@@ -663,12 +678,6 @@ export function EnquiryListPage() {
               More filters
               {advancedActiveCount ? ` (${advancedActiveCount})` : ''}
             </Button>
-            {hasActiveFilters ? (
-              <Button size="sm" onClick={resetFilters}>
-                <ArrowPathIcon />
-                Clear filters
-              </Button>
-            ) : null}
           </div>
         </div>
 
@@ -868,8 +877,9 @@ export function EnquiryListPage() {
                           : 'New enquiries will appear here as they come in.'}
                       </p>
                       {hasActiveFilters ? (
-                        <Button size="sm" onClick={resetFilters}>
-                          Clear filters
+                        <Button size="sm" variant="secondary" onClick={resetFilters}>
+                          <ArrowPathIcon />
+                          Reset filters
                         </Button>
                       ) : null}
                     </div>

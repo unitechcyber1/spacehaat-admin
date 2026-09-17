@@ -4,7 +4,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
+import { FormSection } from '../../components/FormSection'
 import { PageShell } from '../../components/PageShell'
+import { filterLabelClass } from '../../lib/listPageUi'
 import { getAmenities, saveAmenity } from '../../services/amenity/amenity.service'
 import type { AmenityCategory, AmenityRecord } from '../../services/amenity/types'
 
@@ -124,53 +126,53 @@ export function AmenityFormPage() {
       ) : showError ? (
         <p className="text-sm text-rose-600">Could not load this amenity.</p>
       ) : showForm ? (
-        <form onSubmit={onSubmit} className="max-w-xl space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="amenity-name">
-                Name <span className="text-rose-600">*</span>
-              </label>
-              <Input
-                id="amenity-name"
-                value={form.name ?? ''}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Name"
-                className="mt-1 rounded-xl"
-                required
-              />
+        <form onSubmit={onSubmit} className="form-page narrow">
+          <FormSection title="Details" description="Name and category for this amenity.">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={filterLabelClass} htmlFor="amenity-name">
+                  Name <span className="text-expired">*</span>
+                </label>
+                <Input
+                  id="amenity-name"
+                  value={form.name ?? ''}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Name"
+                  required
+                />
+              </div>
+              <div>
+                <label className={filterLabelClass} htmlFor="amenity-category">
+                  Category
+                </label>
+                <select
+                  id="amenity-category"
+                  className={selectClass.replace('mt-1 ', '')}
+                  value={form.category ?? 'facilities'}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as AmenityCategory }))}
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="amenity-category">
-                Category
-              </label>
-              <select
-                id="amenity-category"
-                className={selectClass}
-                value={form.category ?? 'facilities'}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as AmenityCategory }))}
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          </FormSection>
 
-          <div>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Apply to</div>
+          <FormSection title="Apply to" description="Choose which listing types can use this amenity.">
             <div className="flex flex-wrap gap-4">
               {(
                 [
-                  ['for_coWorking', 'For coworking'],
-                  ['for_office', 'For office / commercial'],
-                  ['for_coLiving', 'For coliving'],
-                  ['for_flatspace', 'For flat / residential'],
-                  ['for_builder_project', 'For builder project'],
+                  ['for_coWorking', 'Coworking'],
+                  ['for_office', 'Office / commercial'],
+                  ['for_coLiving', 'Coliving'],
+                  ['for_flatspace', 'Flat / residential'],
+                  ['for_builder_project', 'Builder project'],
                 ] as const
               ).map(([key, label]) => (
-                <label key={key} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <label key={key} className="flex cursor-pointer items-center gap-2 text-sm text-ink-2">
                   <input
                     type="checkbox"
                     className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
@@ -181,14 +183,14 @@ export function AmenityFormPage() {
                 </label>
               ))}
             </div>
-          </div>
+          </FormSection>
 
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" variant="primary" disabled={saveMut.isPending}>
-              {isEdit ? 'Save' : 'Add'}
-            </Button>
+          <div className="form-actions-bar">
             <Button type="button" variant="secondary" onClick={() => navigate('/layout/amenty')}>
               Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={saveMut.isPending}>
+              {isEdit ? 'Save changes' : 'Add amenity'}
             </Button>
           </div>
         </form>

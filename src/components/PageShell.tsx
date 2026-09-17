@@ -22,7 +22,7 @@ export function PageShell({
         </div>
         {actions ? <div className="actions">{actions}</div> : null}
       </div>
-      {children}
+      <div className="page-stack">{children}</div>
     </div>
   )
 }

@@ -1,12 +1,18 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { IconAction } from '../../components/IconAction'
 import { Input } from '../../components/Input'
+import { ListFilterCard } from '../../components/ListFilterCard'
+import { ListPageMeta } from '../../components/ListPageMeta'
+import { ListPagination } from '../../components/ListPagination'
 import { PageShell } from '../../components/PageShell'
 import { Table, Td, Th, Tr } from '../../components/Table'
+import { filterLabelClass, resolveListTotal, sortIndicator } from '../../lib/listPageUi'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { deleteSeo, getSeos } from '../../services/seo/seo.service'
 import type { SeoRecord } from '../../services/seo/types'
@@ -53,11 +59,9 @@ export function SeoListPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Delete failed'),
   })
 
-  const total = listQ.data?.totalRecords ?? listQ.data?.data?.length ?? 0
   const rows = (listQ.data?.data ?? []) as SeoRecord[]
+  const total = resolveListTotal(listQ.data, rows.length)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const canPrev = page > 1
-  const canNext = page < totalPages
 
   function toggleSort(col: string) {
     if (sortBy !== col) {
@@ -72,11 +76,6 @@ export function SeoListPage() {
     setPage(1)
   }
 
-  function sortMark(col: string) {
-    if (sortBy !== col) return '↕'
-    return orderBy === '-1' ? '↓' : '↑'
-  }
-
   function resetFilters() {
     setPathInput('')
     setPage(1)
@@ -89,16 +88,16 @@ export function SeoListPage() {
     <>
       <PageShell
         title="SEO"
-        description="Manage SEO entries (path, meta, social, scripts). Matches legacy SEO data table."
+        description="Manage SEO entries — path, meta tags, social previews, and scripts."
         actions={
           <Button variant="primary" onClick={() => navigate('/layout/seo/add')}>
             Add SEO
           </Button>
         }
       >
-        <div className="mb-4 flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200/70 bg-surface p-4 shadow-sm ring-1 ring-slate-200/50">
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="seo-search-path">
+        <ListFilterCard description="Filter by URL path." onReset={resetFilters}>
+          <div className="min-w-0 sm:col-span-2">
+            <label className={filterLabelClass} htmlFor="seo-search-path">
               Search path
             </label>
             <Input
@@ -109,122 +108,79 @@ export function SeoListPage() {
                 setPathInput(e.target.value)
               }}
               placeholder="Filter by path…"
-              className="rounded-xl"
             />
           </div>
-          <Button type="button" variant="secondary" onClick={resetFilters}>
-            Reset filters
-          </Button>
-        </div>
+        </ListFilterCard>
 
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">
-            {listQ.isLoading ? 'Loading…' : `${total} records`}
-            {listQ.isError ? (
-              <span className="ml-2 text-rose-600">{(listQ.error as Error)?.message ?? 'Failed to load'}</span>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs text-slate-500" htmlFor="seo-page-size">
-              Per page
-            </label>
-            <select
-              id="seo-page-size"
-              className="rounded-xl border-0 bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-violet-500"
-              value={pageSize}
-              onChange={(e) => {
-                setPage(1)
-                setPageSize(Number(e.target.value))
-              }}
-            >
-              {[5, 10, 25, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <Button variant="secondary" disabled={!canPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              Prev
-            </Button>
-            <span className="text-sm text-slate-600">
-              Page <span className="font-medium text-slate-900">{page}</span> / {totalPages}
-            </span>
-            <Button variant="secondary" disabled={!canNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+        <ListPageMeta
+          loading={listQ.isLoading}
+          loadingLabel="Loading SEO entries…"
+          total={total}
+          noun="entry"
+          error={listQ.isError ? (listQ.error as Error)?.message ?? 'Failed to load' : null}
+        />
 
         <Table>
-          <thead className="bg-slate-50">
+          <thead className="bg-surface-2">
             <tr>
-              <Th>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                  onClick={() => toggleSort('path')}
-                >
-                  Path {sortMark('path')}
+              <Th className="w-[22%]">
+                <button type="button" className="flex items-center gap-1 font-semibold uppercase tracking-wide text-muted hover:text-brand" onClick={() => toggleSort('path')}>
+                  Path {sortIndicator(sortBy === 'path', orderBy)}
                 </button>
               </Th>
-              <Th>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                  onClick={() => toggleSort('title')}
-                >
-                  Title {sortMark('title')}
+              <Th className="w-[22%]">
+                <button type="button" className="flex items-center gap-1 font-semibold uppercase tracking-wide text-muted hover:text-brand" onClick={() => toggleSort('title')}>
+                  Title {sortIndicator(sortBy === 'title', orderBy)}
                 </button>
               </Th>
-              <Th>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
-                  onClick={() => toggleSort('description')}
-                >
-                  Description {sortMark('description')}
+              <Th className="w-[46%]">
+                <button type="button" className="flex items-center gap-1 font-semibold uppercase tracking-wide text-muted hover:text-brand" onClick={() => toggleSort('description')}>
+                  Description {sortIndicator(sortBy === 'description', orderBy)}
                 </button>
               </Th>
-              <Th>Edit</Th>
-              <Th>Delete</Th>
+              <Th className="w-[10%] text-center">Actions</Th>
             </tr>
           </thead>
           <tbody>
-            {!listQ.isLoading && rows.length === 0 ? (
-              <Tr>
-                <Td colSpan={5} className="py-12 text-center text-sm text-slate-500">
-                  No SEO rows. Add one with “Add SEO”.
-                </Td>
-              </Tr>
-            ) : null}
-            {rows.map((row) => {
-              const id = seoRowId(row)
-              return (
-                <Tr key={id || row.path}>
-                  <Td className="max-w-[200px] truncate font-medium text-slate-900" title={row.path}>
-                    {row.path || 'No path'}
-                  </Td>
-                  <Td className="max-w-[180px] truncate" title={row.title}>
-                    {row.title ?? '—'}
-                  </Td>
-                  <Td className="max-w-md truncate text-sm text-slate-700" title={row.description}>
-                    {row.description || 'No description'}
-                  </Td>
-                  <Td>
-                    <Button variant="ghost" disabled={!id} onClick={() => navigate(`/layout/seo/detail/${id}`)}>
-                      Edit
-                    </Button>
-                  </Td>
-                  <Td>
-                    <Button variant="ghost" className="text-rose-700" onClick={() => setConfirm(row)}>
-                      Delete
-                    </Button>
-                  </Td>
-                </Tr>
-              )
-            })}
+            {listQ.isLoading ? (
+              <Tr><Td colSpan={4} className="list-empty">Loading…</Td></Tr>
+            ) : rows.length === 0 ? (
+              <Tr><Td colSpan={4} className="list-empty"><strong>No SEO entries</strong>Add one with “Add SEO”.</Td></Tr>
+            ) : (
+              rows.map((row) => {
+                const id = seoRowId(row)
+                return (
+                  <Tr key={id || row.path}>
+                    <Td className="align-middle max-w-[200px] truncate font-medium text-ink" title={row.path}>{row.path || '—'}</Td>
+                    <Td className="align-middle max-w-[180px] truncate text-sm" title={row.title}>{row.title ?? '—'}</Td>
+                    <Td className="align-middle max-w-md truncate text-sm text-muted" title={row.description}>{row.description || '—'}</Td>
+                    <Td className="align-middle">
+                      <div className="table-actions">
+                        <IconAction label="Edit" disabled={!id} onClick={() => navigate(`/layout/seo/detail/${id}`)}>
+                          <PencilSquareIcon className="h-5 w-5" aria-hidden />
+                        </IconAction>
+                        <IconAction label="Delete" tone="rose" onClick={() => setConfirm(row)}>
+                          <TrashIcon className="h-5 w-5" aria-hidden />
+                        </IconAction>
+                      </div>
+                    </Td>
+                  </Tr>
+                )
+              })
+            )}
           </tbody>
         </Table>
+
+        <ListPagination
+          currentPage={Math.min(page, totalPages)}
+          pageCount={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          loading={listQ.isLoading}
+          className="border-0 bg-transparent px-0 shadow-none ring-0"
+        />
       </PageShell>
 
       <ConfirmDialog
@@ -234,10 +190,7 @@ export function SeoListPage() {
         confirmText="Delete"
         danger
         onCancel={() => setConfirm(null)}
-        onConfirm={() => {
-          const id = confirm ? seoRowId(confirm) : ''
-          if (id) delMut.mutate(id)
-        }}
+        onConfirm={() => { const id = confirm ? seoRowId(confirm) : ''; if (id) delMut.mutate(id) }}
       />
     </>
   )

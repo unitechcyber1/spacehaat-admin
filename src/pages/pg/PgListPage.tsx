@@ -12,6 +12,8 @@ import {
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Input } from '../../components/Input'
+import { ListPageMeta } from '../../components/ListPageMeta'
+import { ListPagination } from '../../components/ListPagination'
 import { PageShell } from '../../components/PageShell'
 import { SearchableCitySelect } from '../../components/SearchableCitySelect'
 import { Table, Td, Th, Tr } from '../../components/Table'
@@ -296,9 +298,6 @@ export function PgListPage() {
   const total = listQ.data?.totalRecords ?? listQ.data?.data?.length ?? 0
   const rows = (listQ.data?.data ?? []) as PgRow[]
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const canPrev = page > 1
-  const canNext = page < totalPages
-
   return (
     <>
       <PageShell
@@ -419,37 +418,15 @@ export function PgListPage() {
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/60 bg-slate-50/80 px-4 py-3">
-          <div className="text-sm text-slate-600">
-            {listQ.isLoading ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-violet-500" aria-hidden />
-                Loading…
-              </span>
-            ) : (
-              <>
-                <span className="font-semibold text-slate-800">{total}</span>
-                <span className="text-slate-500"> PG{total !== 1 ? 's' : ''}</span>
-              </>
-            )}
-            {listQ.isError ? (
-              <span className="ml-2 text-rose-600">{(listQ.error as Error)?.message ?? 'Failed to load'}</span>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="secondary" className="bg-surface" disabled={!canPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              Previous
-            </Button>
-            <div className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200/80">
-              Page {page} of {totalPages}
-            </div>
-            <Button variant="secondary" className="bg-surface" disabled={!canNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+        <ListPageMeta
+          loading={listQ.isLoading}
+          loadingLabel="Loading PG listings…"
+          total={total}
+          noun="PG"
+          error={listQ.isError ? (listQ.error as Error)?.message ?? 'Failed to load' : null}
+        />
 
-        <Table className="mt-5 [&_table]:min-w-[1024px]">
+        <Table className="[&_table]:min-w-[1024px]">
           <thead className="bg-surface-2">
             <tr>
               <Th className="min-w-[160px]">
@@ -614,6 +591,18 @@ export function PgListPage() {
             })}
           </tbody>
         </Table>
+
+        <ListPagination
+          currentPage={Math.min(page, totalPages)}
+          pageCount={totalPages}
+          total={total}
+          pageSize={pageSize}
+          pageSizeOptions={[10, 20, 50, 100]}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          loading={listQ.isLoading}
+          className="border-0 bg-transparent px-0 shadow-none ring-0"
+        />
       </PageShell>
 
       <ConfirmDialog

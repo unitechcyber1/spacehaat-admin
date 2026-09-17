@@ -7,6 +7,7 @@ import {
   BuildingOffice2Icon,
   ChartBarSquareIcon,
   ClipboardDocumentListIcon,
+  CurrencyDollarIcon,
   CubeIcon,
   DocumentTextIcon,
   GlobeAltIcon,
@@ -34,6 +35,7 @@ import { cn } from '../lib/ui'
 
 const navItems: SidebarItem[] = [
   { to: '/layout/enquiry', label: 'Enquiry', icon: TicketIcon, section: 'Main' },
+  { to: '/layout/billing/invoices', label: 'Billing', icon: CurrencyDollarIcon, section: 'Main' },
   { to: '/layout/office-space', label: 'Office space', icon: BriefcaseIcon, section: 'Office space' },
   { to: '/layout/pg', label: 'PG listings', icon: HomeModernIcon, section: 'PG' },
   { to: '/layout/pg/priority', label: 'PG priority', icon: QueueListIcon, section: 'PG' },

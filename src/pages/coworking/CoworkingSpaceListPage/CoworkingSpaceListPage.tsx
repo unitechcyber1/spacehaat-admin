@@ -13,6 +13,8 @@ import toast from 'react-hot-toast'
 import { Button } from '../../../components/Button'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { Input } from '../../../components/Input'
+import { ListPageMeta } from '../../../components/ListPageMeta'
+import { ListPagination } from '../../../components/ListPagination'
 import { PageShell } from '../../../components/PageShell'
 import { SearchableCitySelect } from '../../../components/SearchableCitySelect'
 import { Table, Td, Th, Tr } from '../../../components/Table'
@@ -145,8 +147,11 @@ export function CoworkingSpaceListPage() {
   })
 
   const statusMut = useMutation({
-    mutationFn: ({ ws, next }: { ws: WorkspaceListItem; next: string }) =>
-      changeWorkspaceStatus({ ...ws, status: next } as WorkspaceListItem),
+    mutationFn: ({ ws, next }: { ws: WorkspaceListItem; next: string }) => {
+      const id = workspaceRowId(ws)
+      if (!id) throw new Error('Missing workspace id')
+      return changeWorkspaceStatus({ ...ws, id, _id: id, status: next })
+    },
     onSuccess: (_, v) => {
       toast.success(v.next === 'approve' ? 'Enabled' : v.next === 'reject' ? 'Disabled' : 'Updated')
       setConfirm(null)
@@ -238,8 +243,48 @@ export function CoworkingSpaceListPage() {
   const total = data?.totalRecords ?? data?.data?.length ?? 0
   const rows = (data?.data ?? []) as WorkspaceListItem[]
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const canPrev = page > 1
-  const canNext = page < totalPages
+
+  const confirmDialog = (() => {
+    if (!confirm) return null
+    if (confirm.type === 'delete') {
+      return {
+        title: 'Delete workspace?',
+        description: `Remove “${confirm.name}”?`,
+        confirmText: 'Delete',
+        danger: true,
+        busy: delMut.isPending,
+        onConfirm: () => delMut.mutate(confirm.id),
+      }
+    }
+    if (confirm.type === 'enable') {
+      return {
+        title: 'Enable workspace?',
+        description: `Set “${confirm.ws.name}” to ENABLED?`,
+        confirmText: 'Enable',
+        danger: false,
+        busy: statusMut.isPending,
+        onConfirm: () => statusMut.mutate({ ws: confirm.ws, next: 'approve' }),
+      }
+    }
+    if (confirm.type === 'disable') {
+      return {
+        title: 'Disable workspace?',
+        description: `Set “${confirm.ws.name}” to DISABLED?`,
+        confirmText: 'Disable',
+        danger: true,
+        busy: statusMut.isPending,
+        onConfirm: () => statusMut.mutate({ ws: confirm.ws, next: 'reject' }),
+      }
+    }
+    return {
+      title: 'Mark workspace in progress?',
+      description: `Set “${confirm.ws.name}” to IN PROGRESS?`,
+      confirmText: 'Mark in progress',
+      danger: false,
+      busy: statusMut.isPending,
+      onConfirm: () => statusMut.mutate({ ws: confirm.ws, next: 'inprogress' }),
+    }
+  })()
 
   return (
     <>
@@ -369,47 +414,15 @@ export function CoworkingSpaceListPage() {
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/60 bg-slate-50/80 px-4 py-3">
-          <div className="text-sm text-slate-600">
-            {listQ.isLoading ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-violet-500" aria-hidden />
-                Loading…
-              </span>
-            ) : (
-              <>
-                <span className="font-semibold text-slate-800">{total}</span>
-                <span className="text-slate-500"> workspace{total !== 1 ? 's' : ''}</span>
-              </>
-            )}
-            {listQ.isError ? (
-              <span className="ml-2 text-rose-600">{(listQ.error as Error)?.message ?? 'Failed to load'}</span>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="secondary"
-              className="bg-surface"
-              disabled={!canPrev}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <div className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200/80">
-              Page {page} of {totalPages}
-            </div>
-            <Button
-              variant="secondary"
-              className="bg-surface"
-              disabled={!canNext}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <ListPageMeta
+          loading={listQ.isLoading}
+          loadingLabel="Loading workspaces…"
+          total={total}
+          noun="workspace"
+          error={listQ.isError ? (listQ.error as Error)?.message ?? 'Failed to load' : null}
+        />
 
-        <Table className="mt-5 overflow-hidden rounded-2xl ring-1 ring-slate-200/70">
+        <Table>
           <thead className="bg-surface-2">
             <tr>
               <Th className="w-[28%]">
@@ -518,7 +531,10 @@ export function CoworkingSpaceListPage() {
                       <button
                         type="button"
                         className={iconButtonClass('emerald')}
-                        onClick={() => setConfirm({ type: 'enable', ws: w })}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setConfirm({ type: 'enable', ws: w })
+                        }}
                         aria-label="Enable workspace"
                       >
                         <CheckCircleIcon className="h-5 w-5" aria-hidden />
@@ -528,7 +544,10 @@ export function CoworkingSpaceListPage() {
                       <button
                         type="button"
                         className={iconButtonClass('sky')}
-                        onClick={() => setConfirm({ type: 'inprogress', ws: w })}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setConfirm({ type: 'inprogress', ws: w })
+                        }}
                         aria-label="Mark workspace in progress"
                       >
                         <ClockIcon className="h-5 w-5" aria-hidden />
@@ -538,7 +557,10 @@ export function CoworkingSpaceListPage() {
                       <button
                         type="button"
                         className={iconButtonClass('amber')}
-                        onClick={() => setConfirm({ type: 'disable', ws: w })}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setConfirm({ type: 'disable', ws: w })
+                        }}
                         aria-label="Disable workspace"
                       >
                         <XCircleIcon className="h-5 w-5" aria-hidden />
@@ -548,9 +570,15 @@ export function CoworkingSpaceListPage() {
                       <button
                         type="button"
                         className={iconButtonClass('rose')}
-                        onClick={() =>
-                          setConfirm({ type: 'delete', id: workspaceRowId(w), name: w.name ?? '' })
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const id = workspaceRowId(w)
+                          if (!id) {
+                            toast.error('Missing workspace id')
+                            return
+                          }
+                          setConfirm({ type: 'delete', id, name: w.name ?? '' })
+                        }}
                         aria-label="Delete workspace"
                       >
                         <TrashIcon className="h-5 w-5" aria-hidden />
@@ -562,51 +590,31 @@ export function CoworkingSpaceListPage() {
             ))}
           </tbody>
         </Table>
+
+        <ListPagination
+          currentPage={Math.min(page, totalPages)}
+          pageCount={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          loading={listQ.isLoading}
+          className="border-0 bg-transparent px-0 shadow-none ring-0"
+        />
       </PageShell>
 
-      <ConfirmDialog
-        open={confirm?.type === 'delete'}
-        title="Delete workspace?"
-        description={confirm?.type === 'delete' ? `Remove “${confirm.name}”?` : undefined}
-        confirmText="Delete"
-        danger
-        onCancel={() => setConfirm(null)}
-        onConfirm={() => confirm?.type === 'delete' && delMut.mutate(confirm.id)}
-      />
-
-      <ConfirmDialog
-        open={confirm?.type === 'enable'}
-        title="Enable workspace?"
-        description={confirm?.type === 'enable' ? `Set “${confirm.ws.name}” to ENABLED?` : undefined}
-        confirmText="Enable"
-        onCancel={() => setConfirm(null)}
-        onConfirm={() =>
-          confirm?.type === 'enable' && statusMut.mutate({ ws: confirm.ws, next: 'approve' })
-        }
-      />
-
-      <ConfirmDialog
-        open={confirm?.type === 'disable'}
-        title="Disable workspace?"
-        description={confirm?.type === 'disable' ? `Set “${confirm.ws.name}” to DISABLED?` : undefined}
-        confirmText="Disable"
-        danger
-        onCancel={() => setConfirm(null)}
-        onConfirm={() =>
-          confirm?.type === 'disable' && statusMut.mutate({ ws: confirm.ws, next: 'reject' })
-        }
-      />
-
-      <ConfirmDialog
-        open={confirm?.type === 'inprogress'}
-        title="Mark workspace in progress?"
-        description={confirm?.type === 'inprogress' ? `Set “${confirm.ws.name}” to IN PROGRESS?` : undefined}
-        confirmText="Mark in progress"
-        onCancel={() => setConfirm(null)}
-        onConfirm={() =>
-          confirm?.type === 'inprogress' && statusMut.mutate({ ws: confirm.ws, next: 'inprogress' })
-        }
-      />
+      {confirmDialog ? (
+        <ConfirmDialog
+          open
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          confirmText={confirmDialog.confirmText}
+          danger={confirmDialog.danger}
+          busy={confirmDialog.busy}
+          onCancel={() => setConfirm(null)}
+          onConfirm={confirmDialog.onConfirm}
+        />
+      ) : null}
     </>
   )
 }

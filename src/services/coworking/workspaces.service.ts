@@ -1,3 +1,4 @@
+import { workspaceRowId } from '../../lib/workspaceDisplay'
 import { apiClient } from '../apiClient'
 import type { ArrayResponse, ObjectResponse } from '../apiClient'
 import type { WorkspaceListItem } from './types'
@@ -74,15 +75,20 @@ export async function changePrioritySpacesOrder(payload: Record<string, unknown>
 }
 
 export async function changeWorkspaceStatus(workspace: WorkspaceListItem) {
+  const id = workspaceRowId(workspace)
+  if (!id) throw new Error('Missing workspace id')
   const res = await apiClient.post<ObjectResponse<unknown>>(
-    `admin/workSpace/changeStatus/${workspace.id}`,
-    workspace,
+    `admin/workSpace/changeStatus/${encodeURIComponent(id)}`,
+    { ...workspace, id, _id: id, status: workspace.status },
   )
   return res.data
 }
 
 export async function deleteWorkspace(id: string) {
-  const res = await apiClient.delete<ObjectResponse<unknown>>(`admin/workSpace/${id}`)
+  if (!id) throw new Error('Missing workspace id')
+  const res = await apiClient.delete<ObjectResponse<unknown>>(
+    `admin/workSpace/${encodeURIComponent(id)}`,
+  )
   return res.data
 }
 
