@@ -3,6 +3,7 @@ import type {
   BillingProfile,
   CreateInvoiceFromBillingClientPayload,
   Invoice,
+  InvoiceAnalytics,
   InvoiceMeta,
   InvoiceNumberPreview,
   InvoiceSendPrefill,
@@ -33,6 +34,13 @@ export async function getInvoiceNumberPreview(
     'admin/invoices/number-preview',
     { params },
   )
+  return res.data.data
+}
+
+export async function getInvoiceAnalytics(year: number) {
+  const res = await apiClient.get<ObjectResponse<InvoiceAnalytics>>('admin/invoices/analytics', {
+    params: { year },
+  })
   return res.data.data
 }
 

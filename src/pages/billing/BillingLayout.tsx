@@ -7,9 +7,10 @@ import { cn } from '../../lib/ui'
 import { isBillingAdminOnlyPath } from './billingHelpers'
 import './billing.css'
 
-export type BillingTab = 'clients' | 'invoices' | 'settings' | 'state-gst' | 'catalog'
+export type BillingTab = 'overview' | 'clients' | 'invoices' | 'settings' | 'state-gst' | 'catalog'
 
 const TAB_ROUTES: Record<BillingTab, string> = {
+  overview: '/layout/billing/overview',
   invoices: '/layout/billing/invoices',
   clients: '/layout/billing/clients',
   settings: '/layout/billing/settings',
@@ -22,6 +23,7 @@ function activeTabFromPath(pathname: string): BillingTab {
   if (pathname.includes('/billing/product-catalog')) return 'catalog'
   if (pathname.includes('/billing/settings')) return 'settings'
   if (pathname.includes('/billing/clients')) return 'clients'
+  if (pathname.includes('/billing/overview')) return 'overview'
   return 'invoices'
 }
 
@@ -44,6 +46,7 @@ export function BillingLayout() {
       { id: 'settings', label: 'Settings', adminOnly: true },
       { id: 'state-gst', label: 'State GST', adminOnly: true },
       { id: 'catalog', label: 'Catalog', adminOnly: true },
+      { id: 'overview', label: 'Overview' },
     ]
     return base.filter((t) => !t.adminOnly || isAdmin)
   }, [isAdmin])
@@ -78,7 +81,7 @@ export function BillingLayout() {
           <NavLink
             key={tab.id}
             to={TAB_ROUTES[tab.id]}
-            end={tab.id === 'invoices' || tab.id === 'clients'}
+            end={tab.id === 'overview' || tab.id === 'invoices' || tab.id === 'clients'}
             className={({ isActive }) =>
               cn(
                 'rounded-t-lg px-4 py-2.5 text-sm font-medium transition',

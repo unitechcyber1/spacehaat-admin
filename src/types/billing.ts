@@ -110,6 +110,7 @@ export interface Invoice {
   amount_paid?: number
   due_date?: string
   issue_date?: string
+  paid_at?: string
   notes?: string
   terms?: string
   commercial?: InvoiceCommercial
@@ -299,6 +300,7 @@ export interface SendInvoicePayload {
 
 export interface MarkPaidPayload {
   amount_paid?: number
+  paid_at?: string
   razorpay_payment_id?: string
   issue_tax_invoice_on_payment?: boolean
 }
@@ -348,3 +350,69 @@ export interface BillingClientMeta {
 }
 
 export type BillingClientPayload = Omit<BillingClient, '_id' | 'id' | 'added_on' | 'updated_on'>
+
+export interface InvoiceAnalyticsSummary {
+  billed: number
+  collected: number
+  outstanding: number
+  outstandingAll: number
+  overdueAmount: number
+  pendingAmount: number
+  collectionRate: number
+  invoiceCount: number
+  paidCount: number
+  pendingCount: number
+  overdueCount: number
+  draftCount: number
+  openCount: number
+}
+
+export interface InvoiceAnalyticsMonth {
+  key: string
+  label: string
+  billed: number
+  collected: number
+  outstanding: number
+  count: number
+}
+
+export interface InvoiceAnalyticsSpace {
+  space_type: string
+  billed: number
+  collected: number
+  pending: number
+  overdue: number
+  count: number
+  paidCount: number
+  openCount: number
+}
+
+export interface InvoiceAnalyticsClient {
+  name: string
+  billed: number
+  collected: number
+  outstanding: number
+  count: number
+}
+
+export interface InvoiceAnalyticsOpen {
+  id: string
+  invoice_number?: string
+  client: string
+  space_type?: string
+  status: string
+  total: number
+  balance_due: number
+  due_date?: string | null
+  days_overdue: number
+}
+
+export interface InvoiceAnalytics {
+  year: number
+  summary: InvoiceAnalyticsSummary
+  months: InvoiceAnalyticsMonth[]
+  spaces: InvoiceAnalyticsSpace[]
+  clients: InvoiceAnalyticsClient[]
+  openInvoices: InvoiceAnalyticsOpen[]
+  openTotal: number
+}

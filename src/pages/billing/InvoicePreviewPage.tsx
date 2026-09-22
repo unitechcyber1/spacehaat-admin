@@ -37,6 +37,7 @@ import type { InvoiceType } from '../../types/billing'
 import { BillingBadge } from './BillingBadge'
 import {
   canEditInvoice,
+  fmtDocDate,
   formatEmailRecipientList,
   formatEmailSentAt,
   formatInr,
@@ -53,6 +54,13 @@ import {
 
 type EmailField = 'to' | 'cc' | 'bcc'
 
+function todayInputDate() {
+  const d = new Date()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${month}-${day}`
+}
+
 export function InvoicePreviewPage() {
   const { invoiceId } = useParams<{ invoiceId: string }>()
   const navigate = useNavigate()
@@ -63,6 +71,7 @@ export function InvoicePreviewPage() {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [markPaidOpen, setMarkPaidOpen] = useState(false)
   const [amountPaid, setAmountPaid] = useState('')
+  const [paidOn, setPaidOn] = useState('')
 
   const pageQ = useQuery({
     queryKey: ['billing', 'invoice-preview', invoiceId],
@@ -118,12 +127,14 @@ export function InvoicePreviewPage() {
     mutationFn: () =>
       markPaid(invoiceId!, {
         amount_paid: amountPaid ? Number(amountPaid) : undefined,
+        paid_at: paidOn,
       }),
     onSuccess: () => {
       toast.success('Marked as paid')
       setMarkPaidOpen(false)
       qc.invalidateQueries({ queryKey: ['billing', 'invoice-preview', invoiceId] })
       qc.invalidateQueries({ queryKey: ['billing', 'invoices'] })
+      qc.invalidateQueries({ queryKey: ['billing', 'analytics'] })
     },
     onError: (e: unknown) => {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -212,7 +223,11 @@ export function InvoicePreviewPage() {
     <>
       <PageShell
         title={invoice.invoice_number ?? 'Draft invoice'}
-        description={`${invoiceTypeLabel(invoice.invoice_type)} · ${invoiceStatusLabel(invoice.status)}`}
+        description={[
+          invoiceTypeLabel(invoice.invoice_type),
+          invoiceStatusLabel(invoice.status),
+          invoice.status === 'paid' && invoice.paid_at ? `Paid ${fmtDocDate(invoice.paid_at)}` : '',
+        ].filter(Boolean).join(' · ')}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={() => navigate('/layout/billing/invoices')}>
@@ -243,6 +258,7 @@ export function InvoicePreviewPage() {
             {canMarkPaid ? (
               <Button variant="success" onClick={() => {
                 setAmountPaid(String(invoice.balance_due ?? invoice.total ?? ''))
+                setPaidOn(todayInputDate())
                 setMarkPaidOpen(true)
               }}>
                 <BanknotesIcon className="mr-1.5 h-4 w-4" aria-hidden />
@@ -371,7 +387,11 @@ export function InvoicePreviewPage() {
         footer={
           <>
             <Button variant="secondary" onClick={() => setMarkPaidOpen(false)}>Close</Button>
-            <Button variant="success" disabled={markPaidMut.isPending} onClick={() => markPaidMut.mutate()}>
+            <Button
+              variant="success"
+              disabled={markPaidMut.isPending || !paidOn}
+              onClick={() => markPaidMut.mutate()}
+            >
               {markPaidMut.isPending ? 'Saving…' : 'Confirm paid'}
             </Button>
           </>
@@ -384,6 +404,14 @@ export function InvoicePreviewPage() {
             step="any"
             value={amountPaid}
             onChange={(e) => setAmountPaid(e.target.value)}
+          />
+        </Field>
+        <Field label="Payment date" required className="mt-3">
+          <Input
+            type="date"
+            value={paidOn}
+            onChange={(e) => setPaidOn(e.target.value)}
+            required
           />
         </Field>
       </Modal>

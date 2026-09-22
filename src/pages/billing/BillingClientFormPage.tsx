@@ -16,7 +16,6 @@ import type { BillingClient } from '../../types/billing'
 import {
   BILLING_SPACE_TYPES,
   INDIAN_STATE_CODES,
-  billingClientRecordId,
   emptyBillingClient,
   syncPlaceOfSupplyFromStateCode,
 } from './billingHelpers'
@@ -61,11 +60,10 @@ export function BillingClientFormPage() {
       if (isEdit) return updateBillingClient(clientId!, payload)
       return createBillingClient(payload)
     },
-    onSuccess: (res) => {
+    onSuccess: () => {
       toast.success(isEdit ? 'Client updated' : 'Client created')
       qc.invalidateQueries({ queryKey: ['billing-clients'] })
-      const id = billingClientRecordId(res.data)
-      navigate(id ? `/layout/billing/clients/${id}` : '/layout/billing/clients')
+      navigate('/layout/billing/clients')
     },
     onError: (e: unknown) => {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -293,6 +291,18 @@ export function BillingClientFormPage() {
                 <Input
                   value={model.ship_to_gstin ?? ''}
                   onChange={(e) => patch({ ship_to_gstin: e.target.value.toUpperCase() })}
+                />
+              </Field>
+              <Field label="Address line 1" className="sm:col-span-2">
+                <Input
+                  value={model.shipping_address?.line1 ?? ''}
+                  onChange={(e) => patchShipping({ line1: e.target.value })}
+                />
+              </Field>
+              <Field label="Address line 2" className="sm:col-span-2">
+                <Input
+                  value={model.shipping_address?.line2 ?? ''}
+                  onChange={(e) => patchShipping({ line2: e.target.value })}
                 />
               </Field>
               <Field label="Shipping city">

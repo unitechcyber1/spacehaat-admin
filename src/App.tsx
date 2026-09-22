@@ -38,6 +38,7 @@ import { BlogFormPage } from './pages/blog/BlogFormPage'
 import { BlogListPage } from './pages/blog/BlogListPage'
 import { NoAccessPage } from './pages/NoAccessPage'
 import { BillingLayout } from './pages/billing/BillingLayout'
+import { BillingAnalyticsPage } from './pages/billing/BillingAnalyticsPage'
 import { BillingInvoicesPage } from './pages/billing/BillingInvoicesPage'
 import { BillingClientsPage } from './pages/billing/BillingClientsPage'
 import { BillingClientFormPage } from './pages/billing/BillingClientFormPage'
@@ -108,6 +109,7 @@ function App() {
 
         <Route path="billing" element={<BillingLayout />}>
           <Route index element={<Navigate to="invoices" replace />} />
+          <Route path="overview" element={<BillingAnalyticsPage />} />
           <Route path="invoices" element={<BillingInvoicesPage />} />
           <Route path="clients" element={<BillingClientsPage />} />
           <Route path="settings" element={<BillingSettingsPage />} />
