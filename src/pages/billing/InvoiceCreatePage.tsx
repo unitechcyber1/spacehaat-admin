@@ -84,6 +84,8 @@ export function InvoiceCreatePage() {
   const [dueDate, setDueDate] = useState('')
   const [dueDateTouched, setDueDateTouched] = useState(false)
   const [savedInvoiceNumber, setSavedInvoiceNumber] = useState('')
+  const [invoiceNumberValue, setInvoiceNumberValue] = useState('')
+  const [invoiceNumberTouched, setInvoiceNumberTouched] = useState(false)
   const [numberPreview, setNumberPreview] = useState('')
   const [lastNumberHint, setLastNumberHint] = useState('')
 
@@ -137,24 +139,32 @@ export function InvoiceCreatePage() {
       navigate(`/layout/billing/invoices/${invoiceId}/preview`, { replace: true })
       return
     }
+
+    const loadedInvoiceDate = inv.issue_date ? inv.issue_date.slice(0, 10) : todayIso()
+    const loadedDueDate = inv.due_date ? inv.due_date.slice(0, 10) : addDaysIso(loadedInvoiceDate, paymentTermsDays)
+
     setLineItems(cloneLineItems(inv.line_items).length ? cloneLineItems(inv.line_items) : [emptyLineItem()])
     setNotes(inv.notes ?? '')
     setTerms(inv.terms?.trim() || buildDefaultInvoiceTerms(billingProfile))
-    setSellerStateCode(inv.seller_state_code ?? sellerStateCode)
-    setSpaceType(inv.space_type ?? spaceType)
+    setSellerStateCode(inv.seller_state_code ?? '')
+    setSpaceType(inv.space_type ?? 'Coworking Space')
     setSource(inv.source ?? 'manual')
     setInvoiceType(inv.invoice_type ?? 'client')
-    setInvoiceDate(inv.issue_date ? inv.issue_date.slice(0, 10) : todayIso())
-    setDueDate(inv.due_date ? inv.due_date.slice(0, 10) : addDaysIso(invoiceDate, paymentTermsDays))
+    setInvoiceDate(loadedInvoiceDate)
+    setDueDate(loadedDueDate)
     setDueDateTouched(!!inv.due_date)
     setSavedInvoiceNumber(inv.invoice_number ?? '')
+    setInvoiceNumberValue(inv.invoice_number ?? '')
+    setInvoiceNumberTouched(false)
     if (inv.billingClientId) {
-      void getBillingClient(inv.billingClientId).then((c) => {
-        setSelectedClient(c)
-        setClientMode('selected')
-      }).catch(() => {})
+      void getBillingClient(inv.billingClientId)
+        .then((c) => {
+          setSelectedClient(c)
+          setClientMode('selected')
+        })
+        .catch(() => {})
     }
-  }, [billingProfile, editQ.data, invoiceDate, invoiceId, isEdit, navigate, paymentTermsDays, sellerStateCode, spaceType])
+  }, [billingProfile, editQ.data, invoiceId, isEdit, navigate, paymentTermsDays])
 
   useEffect(() => {
     const preId = searchParams.get('billingClientId')
@@ -270,24 +280,24 @@ export function InvoiceCreatePage() {
       if (!lineItems.some((l) => l.description?.trim() && Number(l.unit_price) > 0)) {
         throw new Error('Add at least one line item with description and rate')
       }
+      // Only send a number the user actually typed; otherwise the backend assigns one on issue.
+      const typedInvoiceNumber = invoiceNumberTouched ? invoiceNumberValue.trim() : undefined
+      if (clientMode !== 'selected' || !selectedClient) throw new Error('Select a billing client')
+      if (!selectedClient.place_of_supply_state_code) {
+        throw new Error('Client is missing place of supply state code — edit the client first')
+      }
       if (isEdit) {
         return updateInvoice(invoiceId!, {
           line_items: lineItems,
           seller_state_code: sellerStateCode,
           invoice_type: invoiceType,
+          invoice_number: typedInvoiceNumber,
           notes: notes || undefined,
           terms: resolvedTerms(),
           issue_date: invoiceDate,
           due_date: dueDate,
-          billingClientId:
-            clientMode === 'selected' && selectedClient
-              ? billingClientRecordId(selectedClient)
-              : undefined,
+          billingClientId: billingClientRecordId(selectedClient),
         })
-      }
-      if (clientMode !== 'selected' || !selectedClient) throw new Error('Select a billing client')
-      if (!selectedClient.place_of_supply_state_code) {
-        throw new Error('Client is missing place of supply state code — edit the client first')
       }
       return createFromBillingClient({
         billingClientId: billingClientRecordId(selectedClient),
@@ -295,6 +305,7 @@ export function InvoiceCreatePage() {
         seller_state_code: sellerStateCode,
         source,
         invoice_type: invoiceType,
+        invoice_number: typedInvoiceNumber || undefined,
         notes: notes || undefined,
         terms: resolvedTerms(),
         issue_date: invoiceDate,
@@ -317,7 +328,8 @@ export function InvoiceCreatePage() {
   })
 
   const clientResults = (clientListQ.data?.data ?? []) as BillingClient[]
-  const invoiceNumberDisplay = savedInvoiceNumber || numberPreview || '—'
+  const invoiceNumberDisplay =
+    invoiceNumberTouched || savedInvoiceNumber ? invoiceNumberValue : numberPreview
 
   const back = () => {
     if (isEdit && invoiceId) navigate(`/layout/billing/invoices/${invoiceId}/preview`)
@@ -363,7 +375,16 @@ export function InvoiceCreatePage() {
               <span className="ic-doc-label">
                 Invoice No <span className="ic-doc-req">*</span>
               </span>
-              <div className="ic-doc-value">{invoiceNumberDisplay}</div>
+              <input
+                type="text"
+                value={invoiceNumberDisplay}
+                onChange={(e) => {
+                  setInvoiceNumberValue(e.target.value)
+                  setInvoiceNumberTouched(true)
+                }}
+                placeholder={numberPreview || 'Enter invoice number'}
+                className="ic-doc-value w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-left shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+              />
               {lastNumberHint ? <p className="ic-doc-hint">{lastNumberHint}</p> : null}
             </div>
             <div className="ic-doc-field">
@@ -464,11 +485,9 @@ export function InvoiceCreatePage() {
 
               {clientMode === 'selected' && selectedClient ? (
                 <div className="ic-party-card">
-                  {!isEdit ? (
-                    <button type="button" className="ic-party-change" onClick={clearClient}>
-                      Change
-                    </button>
-                  ) : null}
+                  <button type="button" className="ic-party-change" onClick={clearClient}>
+                    Change
+                  </button>
                   <p className="ic-party-name">{selectedClient.billing_name}</p>
                   {selectedClient.company_name ? (
                     <p className="ic-party-line">{selectedClient.company_name}</p>

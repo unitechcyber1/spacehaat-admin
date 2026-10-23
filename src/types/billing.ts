@@ -236,6 +236,7 @@ export interface CreateInvoiceFromBillingClientPayload {
   seller_state_code?: string
   source?: InvoiceSource
   invoice_type?: InvoiceType
+  invoice_number?: string
   notes?: string
   terms?: string
   due_date?: string
@@ -310,6 +311,7 @@ export interface UpdateInvoicePayload {
   seller_state_code?: string
   billingClientId?: string
   invoice_type?: InvoiceType
+  invoice_number?: string
   notes?: string
   terms?: string
   due_date?: string

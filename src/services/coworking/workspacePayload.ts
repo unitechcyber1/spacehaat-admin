@@ -109,6 +109,7 @@ function setHoursOfOperationForServer(hours: unknown) {
 export function buildWorkspaceSavePayload(ws: AnyRec): AnyRec {
   const object = { ...ws }
   setSeoImagesForServer(object.seo)
+  setSeoImagesForServer(object.new_seo)
   setVirtualSeoImagesForServer(object.virtualSeo)
   object.rooms = setRoomsForServer(object.rooms)
   object.images = setImagesForServer(object.images)

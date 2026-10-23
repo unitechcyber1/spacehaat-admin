@@ -1,19 +1,60 @@
 import { apiClient, type ObjectResponse } from '../apiClient'
 import type { GeneratePdfResult, Invoice, InvoicePreviewPayload } from '../../types/billing'
+import { getBillingProfile } from './billing.service'
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function injectAccountNameIntoHtml(html: string | undefined | null, accountName: string | undefined): string {
+  const clean = (accountName ?? '').trim()
+  if (!html || !clean) return html ?? ''
+  const normalized = escapeHtml(clean)
+  if (/Account Name\s*[:：]/i.test(html) || /account name\s*[:：]/i.test(html)) {
+    return html
+  }
+
+  const block = `
+    <div style="margin-top: 10px; font-size: 12px; line-height: 1.6; color: #374151;">
+      <strong>Account Name:</strong> ${normalized}
+    </div>
+  `
+
+  return /<\/body>/i.test(html)
+    ? html.replace(/<\/body>/i, `${block}\n</body>`)
+    : `${html}${block}`
+}
 
 export async function getInvoicePreview(invoiceId: string) {
-  const res = await apiClient.get<ObjectResponse<InvoicePreviewPayload>>(
-    `admin/invoices/${invoiceId}/preview`,
-  )
-  return res.data.data
+  const [previewRes, profile] = await Promise.all([
+    apiClient.get<ObjectResponse<InvoicePreviewPayload>>(`admin/invoices/${invoiceId}/preview`),
+    getBillingProfile().catch(() => null),
+  ])
+
+  const payload = previewRes.data.data
+  if (!payload) return payload
+  const accountName = profile?.bank_details?.account_name
+  payload.html = injectAccountNameIntoHtml(payload.html, accountName)
+  if (payload.print_html) {
+    payload.print_html = injectAccountNameIntoHtml(payload.print_html, accountName)
+  }
+  return payload
 }
 
 export async function getPrintHtml(invoiceId: string) {
-  const res = await apiClient.get<string>(`admin/invoices/${invoiceId}/html`, {
-    params: { format: 'html', print: '1' },
-    responseType: 'text',
-  })
-  return res.data
+  const [html, profile] = await Promise.all([
+    apiClient.get<string>(`admin/invoices/${invoiceId}/html`, {
+      params: { format: 'html', print: '1' },
+      responseType: 'text',
+    }),
+    getBillingProfile().catch(() => null),
+  ])
+  return injectAccountNameIntoHtml(html.data, profile?.bank_details?.account_name)
 }
 
 export async function generatePdf(invoiceId: string) {

@@ -96,6 +96,7 @@ export function emptyWorkspace(): Record<string, unknown> {
     name: '',
     slug: '',
     description: '',
+    new_description: '',
     email: '',
     website_Url: '',
     currency_code: 'INR',
@@ -145,6 +146,7 @@ export function emptyWorkspace(): Record<string, unknown> {
     brand: '',
     starting_price: 0,
     seo: emptySeoBlock(),
+    new_seo: emptySeoBlock(),
     virtualSeo: emptySeoBlock(),
     space_contact_details: {
       name: '',
@@ -177,15 +179,17 @@ export function normalizeWorkspaceFromApi(data: Record<string, unknown>): Record
       vs.open_graph = { title: '', description: '', image: null }
     }
   }
-  if (!w.seo || typeof w.seo !== 'object') {
-    w.seo = emptySeoBlock()
-  } else {
-    const s = w.seo as Record<string, unknown>
-    if (!s.twitter || typeof s.twitter !== 'object') {
-      s.twitter = { title: '', description: '', image: null }
-    }
-    if (!s.open_graph || typeof s.open_graph !== 'object') {
-      s.open_graph = { title: '', description: '', image: null }
+  for (const key of ['seo', 'new_seo'] as const) {
+    if (!w[key] || typeof w[key] !== 'object') {
+      w[key] = emptySeoBlock()
+    } else {
+      const s = w[key] as Record<string, unknown>
+      if (!s.twitter || typeof s.twitter !== 'object') {
+        s.twitter = { title: '', description: '', image: null }
+      }
+      if (!s.open_graph || typeof s.open_graph !== 'object') {
+        s.open_graph = { title: '', description: '', image: null }
+      }
     }
   }
   if (!w.social_media || typeof w.social_media !== 'object') {

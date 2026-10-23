@@ -42,6 +42,7 @@ type Ws = Record<string, any>
 
 type SeoImageTarget =
   | { block: 'seo'; field: 'twitter' | 'open_graph' }
+  | { block: 'new_seo'; field: 'twitter' | 'open_graph' }
   | { block: 'virtualSeo'; field: 'twitter' | 'open_graph' }
 
 function normalizeImageOrders(images: { order?: number; image?: unknown }[]) {
@@ -71,6 +72,7 @@ export function CoworkingSpaceDetailPage() {
 
   const [ws, setWs] = useState<Ws | null>(null)
   const [indexFlag, setIndexFlag] = useState(true)
+  const [indexNewSeoFlag, setIndexNewSeoFlag] = useState(true)
   const [indexVirtualFlag, setIndexVirtualFlag] = useState(true)
   const [detailTab, setDetailTab] = useState<'coworking' | 'virtual'>('coworking')
   const [galleryDragFrom, setGalleryDragFrom] = useState<number | null>(null)
@@ -134,6 +136,7 @@ export function CoworkingSpaceDetailPage() {
       const n = normalizeWorkspaceFromApi(JSON.parse(JSON.stringify(raw)))
       setWs(n)
       setIndexFlag((n.seo as { robots?: string } | undefined)?.robots === 'index, follow')
+      setIndexNewSeoFlag((n.new_seo as { robots?: string } | undefined)?.robots === 'index, follow')
       setIndexVirtualFlag((n.virtualSeo as { robots?: string } | undefined)?.robots === 'index, follow')
     }
   }, [isNew, detailQ.data])
@@ -202,6 +205,7 @@ export function CoworkingSpaceDetailPage() {
     }
     const next = { ...ws }
     next.seo = { ...next.seo, robots: indexFlag ? 'index, follow' : 'noindex, nofollow' }
+    next.new_seo = { ...next.new_seo, robots: indexNewSeoFlag ? 'index, follow' : 'noindex, nofollow' }
     next.virtualSeo = {
       ...next.virtualSeo,
       robots: indexVirtualFlag ? 'index, follow' : 'noindex, nofollow',
@@ -515,6 +519,180 @@ export function CoworkingSpaceDetailPage() {
 
   const sc = (ws.space_contact_details ?? {}) as Ws
 
+  function renderSeoFields(
+    block: 'seo' | 'new_seo',
+    indexChecked: boolean,
+    setIndexChecked: (v: boolean) => void,
+  ) {
+    if (!ws) return null
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex items-center gap-2 sm:col-span-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 text-violet-600"
+              checked={indexChecked}
+              onChange={(e) => setIndexChecked(e.target.checked)}
+            />
+            Allow indexing
+          </label>
+          <Input
+            placeholder="Meta title"
+            value={ws[block]?.title ?? ''}
+            onChange={(e) => setWs({ ...ws, [block]: { ...ws[block], title: e.target.value } })}
+          />
+          <Input
+            placeholder="Keywords"
+            value={ws[block]?.keywords ?? ''}
+            onChange={(e) => setWs({ ...ws, [block]: { ...ws[block], keywords: e.target.value } })}
+          />
+          <div className="sm:col-span-2">
+            <textarea
+              className="min-h-[80px] w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200"
+              placeholder="Meta description"
+              value={ws[block]?.description ?? ''}
+              onChange={(e) => setWs({ ...ws, [block]: { ...ws[block], description: e.target.value } })}
+            />
+          </div>
+          <Input
+            placeholder="Footer title"
+            value={ws[block]?.footer_title ?? ''}
+            onChange={(e) => setWs({ ...ws, [block]: { ...ws[block], footer_title: e.target.value } })}
+          />
+          <Input
+            placeholder="Footer description"
+            value={ws[block]?.footer_description ?? ''}
+            onChange={(e) => setWs({ ...ws, [block]: { ...ws[block], footer_description: e.target.value } })}
+          />
+        </div>
+        <div className="space-y-3 rounded-xl bg-sky-50/50 p-4 ring-1 ring-sky-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-sky-900">Twitter</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              placeholder="Twitter title"
+              value={ws[block]?.twitter?.title ?? ''}
+              onChange={(e) =>
+                setWs({
+                  ...ws,
+                  [block]: { ...ws[block], twitter: { ...ws[block].twitter, title: e.target.value } },
+                })
+              }
+            />
+            <div className="sm:col-span-2">
+              <textarea
+                className="min-h-[72px] w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200"
+                placeholder="Twitter description"
+                value={ws[block]?.twitter?.description ?? ''}
+                onChange={(e) =>
+                  setWs({
+                    ...ws,
+                    [block]: { ...ws[block], twitter: { ...ws[block].twitter, description: e.target.value } },
+                  })
+                }
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setSeoImgTarget({ block, field: 'twitter' })
+                seoImgRef.current?.click()
+              }}
+            >
+              Twitter image
+            </Button>
+            {ws[block]?.twitter?.image?.s3_link ? (
+              <img
+                src={ws[block].twitter.image.s3_link}
+                alt=""
+                className="h-12 rounded-md ring-1 ring-slate-200"
+              />
+            ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-slate-600"
+              onClick={() =>
+                setWs({
+                  ...ws,
+                  [block]: { ...ws[block], twitter: { ...ws[block].twitter, image: null } },
+                })
+              }
+            >
+              Clear image
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-3 rounded-xl bg-indigo-50/50 p-4 ring-1 ring-indigo-100">
+          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-900">Open Graph</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              placeholder="OG title"
+              value={ws[block]?.open_graph?.title ?? ''}
+              onChange={(e) =>
+                setWs({
+                  ...ws,
+                  [block]: { ...ws[block], open_graph: { ...ws[block].open_graph, title: e.target.value } },
+                })
+              }
+            />
+            <div className="sm:col-span-2">
+              <textarea
+                className="min-h-[72px] w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200"
+                placeholder="OG description"
+                value={ws[block]?.open_graph?.description ?? ''}
+                onChange={(e) =>
+                  setWs({
+                    ...ws,
+                    [block]: {
+                      ...ws[block],
+                      open_graph: { ...ws[block].open_graph, description: e.target.value },
+                    },
+                  })
+                }
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setSeoImgTarget({ block, field: 'open_graph' })
+                seoImgRef.current?.click()
+              }}
+            >
+              Open Graph image
+            </Button>
+            {ws[block]?.open_graph?.image?.s3_link ? (
+              <img
+                src={ws[block].open_graph.image.s3_link}
+                alt=""
+                className="h-12 rounded-md ring-1 ring-slate-200"
+              />
+            ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-slate-600"
+              onClick={() =>
+                setWs({
+                  ...ws,
+                  [block]: { ...ws[block], open_graph: { ...ws[block].open_graph, image: null } },
+                })
+              }
+            >
+              Clear image
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <PageShell
       title={title}
@@ -684,6 +862,16 @@ export function CoworkingSpaceDetailPage() {
             contentHeightClass="h-[180px]"
                 value={(ws.description as string) ?? ''}
                 onChange={(html) => setWs({ ...ws, description: html })}
+                placeholder="Describe the space…"
+              />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="text-xs font-semibold text-slate-700">New description</label>
+              <RichTextEditor
+                className="mt-1"
+                contentHeightClass="h-[180px]"
+                value={(ws.new_description as string) ?? ''}
+                onChange={(html) => setWs({ ...ws, new_description: html })}
                 placeholder="Describe the space…"
               />
             </div>
@@ -1408,172 +1596,9 @@ export function CoworkingSpaceDetailPage() {
           </div>
         ))}
 
-        {section('SEO', (
-          <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="flex items-center gap-2 sm:col-span-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-violet-600"
-                  checked={indexFlag}
-                  onChange={(e) => setIndexFlag(e.target.checked)}
-                />
-                Allow indexing
-              </label>
-              <Input
-                placeholder="Meta title"
-                value={ws.seo?.title ?? ''}
-                onChange={(e) => setWs({ ...ws, seo: { ...ws.seo, title: e.target.value } })}
-              />
-              <Input
-                placeholder="Keywords"
-                value={ws.seo?.keywords ?? ''}
-                onChange={(e) => setWs({ ...ws, seo: { ...ws.seo, keywords: e.target.value } })}
-              />
-              <div className="sm:col-span-2">
-                <textarea
-                  className="min-h-[80px] w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200"
-                  placeholder="Meta description"
-                  value={ws.seo?.description ?? ''}
-                  onChange={(e) => setWs({ ...ws, seo: { ...ws.seo, description: e.target.value } })}
-                />
-              </div>
-              <Input
-                placeholder="Footer title"
-                value={ws.seo?.footer_title ?? ''}
-                onChange={(e) => setWs({ ...ws, seo: { ...ws.seo, footer_title: e.target.value } })}
-              />
-              <Input
-                placeholder="Footer description"
-                value={ws.seo?.footer_description ?? ''}
-                onChange={(e) => setWs({ ...ws, seo: { ...ws.seo, footer_description: e.target.value } })}
-              />
-            </div>
-            <div className="space-y-3 rounded-xl bg-sky-50/50 p-4 ring-1 ring-sky-100">
-              <p className="text-xs font-semibold uppercase tracking-wide text-sky-900">Twitter</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Input
-                  placeholder="Twitter title"
-                  value={ws.seo?.twitter?.title ?? ''}
-                  onChange={(e) =>
-                    setWs({
-                      ...ws,
-                      seo: { ...ws.seo, twitter: { ...ws.seo.twitter, title: e.target.value } },
-                    })
-                  }
-                />
-                <div className="sm:col-span-2">
-                  <textarea
-                    className="min-h-[72px] w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200"
-                    placeholder="Twitter description"
-                    value={ws.seo?.twitter?.description ?? ''}
-                    onChange={(e) =>
-                      setWs({
-                        ...ws,
-                        seo: { ...ws.seo, twitter: { ...ws.seo.twitter, description: e.target.value } },
-                      })
-                    }
-                  />
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    setSeoImgTarget({ block: 'seo', field: 'twitter' })
-                    seoImgRef.current?.click()
-                  }}
-                >
-                  Twitter image
-                </Button>
-                {ws.seo?.twitter?.image?.s3_link ? (
-                  <img
-                    src={ws.seo.twitter.image.s3_link}
-                    alt=""
-                    className="h-12 rounded-md ring-1 ring-slate-200"
-                  />
-                ) : null}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-slate-600"
-                  onClick={() =>
-                    setWs({
-                      ...ws,
-                      seo: { ...ws.seo, twitter: { ...ws.seo.twitter, image: null } },
-                    })
-                  }
-                >
-                  Clear image
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-3 rounded-xl bg-indigo-50/50 p-4 ring-1 ring-indigo-100">
-              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-900">Open Graph</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Input
-                  placeholder="OG title"
-                  value={ws.seo?.open_graph?.title ?? ''}
-                  onChange={(e) =>
-                    setWs({
-                      ...ws,
-                      seo: { ...ws.seo, open_graph: { ...ws.seo.open_graph, title: e.target.value } },
-                    })
-                  }
-                />
-                <div className="sm:col-span-2">
-                  <textarea
-                    className="min-h-[72px] w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200"
-                    placeholder="OG description"
-                    value={ws.seo?.open_graph?.description ?? ''}
-                    onChange={(e) =>
-                      setWs({
-                        ...ws,
-                        seo: {
-                          ...ws.seo,
-                          open_graph: { ...ws.seo.open_graph, description: e.target.value },
-                        },
-                      })
-                    }
-                  />
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    setSeoImgTarget({ block: 'seo', field: 'open_graph' })
-                    seoImgRef.current?.click()
-                  }}
-                >
-                  Open Graph image
-                </Button>
-                {ws.seo?.open_graph?.image?.s3_link ? (
-                  <img
-                    src={ws.seo.open_graph.image.s3_link}
-                    alt=""
-                    className="h-12 rounded-md ring-1 ring-slate-200"
-                  />
-                ) : null}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-slate-600"
-                  onClick={() =>
-                    setWs({
-                      ...ws,
-                      seo: { ...ws.seo, open_graph: { ...ws.seo.open_graph, image: null } },
-                    })
-                  }
-                >
-                  Clear image
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
+        {section('SEO', renderSeoFields('seo', indexFlag, setIndexFlag))}
+
+        {section('New SEO', renderSeoFields('new_seo', indexNewSeoFlag, setIndexNewSeoFlag))}
 
           </>
         ) : (
