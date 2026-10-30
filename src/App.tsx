@@ -26,6 +26,8 @@ import { AmenityListPage } from './pages/amenity/AmenityListPage'
 import { AmenityFormPage } from './pages/amenity/AmenityFormPage'
 import { OfficeSpaceListPage } from './pages/office-space/OfficeSpaceListPage'
 import { OfficeSpaceFormPage } from './pages/office-space/OfficeSpaceFormPage'
+import { ManagedOfficeListPage } from './pages/managed-office/ManagedOfficeListPage'
+import { ManagedOfficeFormPage } from './pages/managed-office/ManagedOfficeFormPage'
 import { PgFormPage } from './pages/pg/PgFormPage'
 import { PgListPage } from './pages/pg/PgListPage'
 import { PgPriorityPage } from './pages/pg/PgPriorityPage'
@@ -173,6 +175,10 @@ function App() {
         <Route path="pg/priority" element={<PgPriorityPage />} />
         <Route path="pg/new" element={<PgFormPage />} />
         <Route path="pg/:pgId/edit" element={<PgFormPage />} />
+
+        <Route path="managed-office" element={<ManagedOfficeListPage />} />
+        <Route path="managed-office/add" element={<ManagedOfficeFormPage />} />
+        <Route path="managed-office/detail/:managedOfficeId" element={<ManagedOfficeFormPage />} />
 
         <Route path="builder" element={<PlaceholderPage title="Builder" />} />
         <Route path="builder/detail/:builderId" element={<PlaceholderPage title="Builder / Detail" />} />

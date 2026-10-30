@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
-  // BriefcaseIcon,
+  BriefcaseIcon,
   BuildingOffice2Icon,
   ChartBarSquareIcon,
   ClipboardDocumentListIcon,
@@ -37,6 +37,7 @@ const navItems: SidebarItem[] = [
   { to: '/layout/enquiry', label: 'Enquiry', icon: TicketIcon, section: 'Main' },
   { to: '/layout/billing/invoices', label: 'Billing', icon: CurrencyDollarIcon, section: 'Main' },
   // { to: '/layout/office-space', label: 'Office space', icon: BriefcaseIcon, section: 'Office space' },
+  { to: '/layout/managed-office', label: 'Managed offices', icon: BriefcaseIcon, section: 'Managed office' },
   { to: '/layout/pg', label: 'PG listings', icon: HomeModernIcon, section: 'PG' },
   { to: '/layout/pg/priority', label: 'PG priority', icon: QueueListIcon, section: 'PG' },
   { to: '/layout/coworking/plans', label: 'Coworking plans', icon: Square3Stack3DIcon, section: 'Coworking' },
