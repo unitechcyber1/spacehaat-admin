@@ -22,6 +22,7 @@ import { MediaListPage } from './pages/media/MediaListPage'
 import { MediaFormPage } from './pages/media/MediaFormPage'
 import { SeoListPage } from './pages/seo/SeoListPage'
 import { SeoFormPage } from './pages/seo/SeoFormPage'
+import { SEO_VARIANTS } from './pages/seo/seoVariants'
 import { AmenityListPage } from './pages/amenity/AmenityListPage'
 import { AmenityFormPage } from './pages/amenity/AmenityFormPage'
 import { OfficeSpaceListPage } from './pages/office-space/OfficeSpaceListPage'
@@ -224,6 +225,9 @@ function App() {
         <Route path="seo" element={<SeoListPage />} />
         <Route path="seo/detail/:seoId" element={<SeoFormPage />} />
         <Route path="seo/add" element={<SeoFormPage />} />
+        <Route path="new-seo" element={<SeoListPage key="newSeo" variant={SEO_VARIANTS.newSeo} />} />
+        <Route path="new-seo/detail/:seoId" element={<SeoFormPage key="newSeo" variant={SEO_VARIANTS.newSeo} />} />
+        <Route path="new-seo/add" element={<SeoFormPage key="newSeo" variant={SEO_VARIANTS.newSeo} />} />
 
         <Route path="equipment" element={<PlaceholderPage title="Equipment" />} />
         <Route path="contact-us" element={<PlaceholderPage title="Contact us" />} />

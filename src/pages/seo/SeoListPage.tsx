@@ -16,12 +16,14 @@ import { filterLabelClass, resolveListTotal, sortIndicator } from '../../lib/lis
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { deleteSeo, getSeos } from '../../services/seo/seo.service'
 import type { SeoRecord } from '../../services/seo/types'
+import { SEO_VARIANTS, type SeoVariant } from './seoVariants'
 
 function seoRowId(s: SeoRecord): string {
   return String(s.id ?? s._id ?? '')
 }
 
-export function SeoListPage() {
+export function SeoListPage({ variant = SEO_VARIANTS.seo }: { variant?: SeoVariant }) {
+  const { resource, route, label } = variant
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [pathInput, setPathInput] = useState('')
@@ -42,19 +44,19 @@ export function SeoListPage() {
   )
 
   const listQ = useQuery({
-    queryKey: ['seo-list', params],
-    queryFn: () => getSeos(params),
+    queryKey: [`${resource}-list`, params],
+    queryFn: () => getSeos(params, resource),
     staleTime: 10_000,
   })
 
   const [confirm, setConfirm] = useState<SeoRecord | null>(null)
 
   const delMut = useMutation({
-    mutationFn: (id: string) => deleteSeo(id),
+    mutationFn: (id: string) => deleteSeo(id, resource),
     onSuccess: () => {
-      toast.success('SEO entry deleted')
+      toast.success(`${label} entry deleted`)
       setConfirm(null)
-      qc.invalidateQueries({ queryKey: ['seo-list'] })
+      qc.invalidateQueries({ queryKey: [`${resource}-list`] })
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Delete failed'),
   })
@@ -87,11 +89,11 @@ export function SeoListPage() {
   return (
     <>
       <PageShell
-        title="SEO"
-        description="Manage SEO entries — path, meta tags, social previews, and scripts."
+        title={label}
+        description={`Manage ${label} entries — path, meta tags, social previews, and scripts.`}
         actions={
-          <Button variant="primary" onClick={() => navigate('/layout/seo/add')}>
-            Add SEO
+          <Button variant="primary" onClick={() => navigate(`${route}/add`)}>
+            Add {label}
           </Button>
         }
       >
@@ -114,7 +116,7 @@ export function SeoListPage() {
 
         <ListPageMeta
           loading={listQ.isLoading}
-          loadingLabel="Loading SEO entries…"
+          loadingLabel={`Loading ${label} entries…`}
           total={total}
           noun="entry"
           error={listQ.isError ? (listQ.error as Error)?.message ?? 'Failed to load' : null}
@@ -145,7 +147,7 @@ export function SeoListPage() {
             {listQ.isLoading ? (
               <Tr><Td colSpan={4} className="list-empty">Loading…</Td></Tr>
             ) : rows.length === 0 ? (
-              <Tr><Td colSpan={4} className="list-empty"><strong>No SEO entries</strong>Add one with “Add SEO”.</Td></Tr>
+              <Tr><Td colSpan={4} className="list-empty"><strong>No {label} entries</strong>Add one with “Add {label}”.</Td></Tr>
             ) : (
               rows.map((row) => {
                 const id = seoRowId(row)
@@ -156,7 +158,7 @@ export function SeoListPage() {
                     <Td className="align-middle max-w-md truncate text-sm text-muted" title={row.description}>{row.description || '—'}</Td>
                     <Td className="align-middle">
                       <div className="table-actions">
-                        <IconAction label="Edit" disabled={!id} onClick={() => navigate(`/layout/seo/detail/${id}`)}>
+                        <IconAction label="Edit" disabled={!id} onClick={() => navigate(`${route}/detail/${id}`)}>
                           <PencilSquareIcon className="h-5 w-5" aria-hidden />
                         </IconAction>
                         <IconAction label="Delete" tone="rose" onClick={() => setConfirm(row)}>
@@ -185,7 +187,7 @@ export function SeoListPage() {
 
       <ConfirmDialog
         open={!!confirm}
-        title="Delete SEO entry?"
+        title={`Delete ${label} entry?`}
         description={confirm ? `Remove “${confirm.title ?? confirm.path ?? 'this entry'}”?` : undefined}
         confirmText="Delete"
         danger

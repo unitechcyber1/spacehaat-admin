@@ -46,6 +46,7 @@ const navItems: SidebarItem[] = [
   { to: '/layout/coworking/priority', label: 'Priority coworking', icon: QueueListIcon, section: 'Coworking' },
   { to: '/layout/brand', label: 'Brand', icon: CubeIcon, section: 'Content' },
   { to: '/layout/seo', label: 'SEO', icon: ChartBarSquareIcon, section: 'Content' },
+  { to: '/layout/new-seo', label: 'New SEO', icon: ChartBarSquareIcon, section: 'Content' },
   { to: '/layout/media', label: 'Media', icon: PhotoIcon, section: 'Content' },
   { to: '/layout/amenty', label: 'Amenities', icon: SparklesIcon, section: 'Content' },
   { to: '/layout/blog', label: 'Blog', icon: DocumentTextIcon, section: 'Content' },

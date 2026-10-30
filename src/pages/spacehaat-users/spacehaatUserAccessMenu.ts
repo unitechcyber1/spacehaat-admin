@@ -17,6 +17,7 @@ export const SPACEHAAT_ACCESS_MENU: { path: string; title: string }[] = [
   { path: '/layout/coworking/priority', title: 'Priority coworking' },
   { path: '/layout/brand', title: 'Brand' },
   { path: '/layout/seo', title: 'SEO' },
+  { path: '/layout/new-seo', title: 'New SEO' },
   { path: '/layout/media', title: 'Media' },
   { path: '/layout/amenty', title: 'Amenities' },
   { path: '/layout/blog', title: 'Blog' },

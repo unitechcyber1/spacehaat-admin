@@ -8,6 +8,7 @@ import { PageShell } from '../../components/PageShell'
 import { RichTextEditor } from '../../components/RichTextEditor/RichTextEditor'
 import { getSeoById, saveSeo } from '../../services/seo/seo.service'
 import type { SeoFaq, SeoRecord, SeoReview, SeoSocial, SeoSocialImage } from '../../services/seo/types'
+import { SEO_VARIANTS, type SeoVariant } from './seoVariants'
 import { uploadAdminFile } from '../../services/upload/upload.service'
 
 function emptySocial(): SeoSocial {
@@ -68,15 +69,16 @@ function normalizeSeoForSave(seo: SeoRecord): SeoRecord {
   return base
 }
 
-export function SeoFormPage() {
+export function SeoFormPage({ variant = SEO_VARIANTS.seo }: { variant?: SeoVariant }) {
+  const { resource, route, label } = variant
   const { seoId } = useParams<{ seoId: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const isEdit = Boolean(seoId)
 
   const existingQ = useQuery({
-    queryKey: ['seo', 'one', seoId],
-    queryFn: () => getSeoById(seoId!),
+    queryKey: [resource, 'one', seoId],
+    queryFn: () => getSeoById(seoId!, resource),
     enabled: isEdit,
   })
 
@@ -115,11 +117,11 @@ export function SeoFormPage() {
   }, [isEdit, existingQ.data])
 
   const saveMut = useMutation({
-    mutationFn: (payload: SeoRecord) => saveSeo(normalizeSeoForSave(payload)),
+    mutationFn: (payload: SeoRecord) => saveSeo(normalizeSeoForSave(payload), resource),
     onSuccess: () => {
-      toast.success(isEdit ? 'SEO updated' : 'SEO created')
-      qc.invalidateQueries({ queryKey: ['seo-list'] })
-      navigate('/layout/seo')
+      toast.success(isEdit ? `${label} updated` : `${label} created`)
+      qc.invalidateQueries({ queryKey: [`${resource}-list`] })
+      navigate(route)
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.message ?? 'Save failed'),
   })
@@ -219,7 +221,7 @@ export function SeoFormPage() {
     saveMut.mutate(payload)
   }
 
-  const title = isEdit ? 'Edit SEO' : 'Add SEO'
+  const title = isEdit ? `Edit ${label}` : `Add ${label}`
   const showLoading = isEdit && existingQ.isLoading
   const showError = isEdit && existingQ.isError
   const showForm = !isEdit || existingQ.isSuccess
@@ -231,7 +233,7 @@ export function SeoFormPage() {
       title={title}
       description="Page details, meta, Twitter / Open Graph, scripts, FAQs, reviews, and footer — aligned with the Angular SEO detail form."
       actions={
-        <Button type="button" variant="secondary" onClick={() => navigate('/layout/seo')}>
+        <Button type="button" variant="secondary" onClick={() => navigate(route)}>
           Back to list
         </Button>
       }
@@ -239,7 +241,7 @@ export function SeoFormPage() {
       {showLoading ? (
         <p className="text-sm text-slate-600">Loading…</p>
       ) : showError ? (
-        <p className="text-sm text-rose-600">Could not load SEO entry.</p>
+        <p className="text-sm text-rose-600">Could not load {label} entry.</p>
       ) : showForm ? (
         <form onSubmit={onSubmit} className="max-w-6xl space-y-8">
           <section className="rounded-2xl border border-slate-200/80 bg-surface p-5 shadow-sm ring-1 ring-slate-200/50">
@@ -602,7 +604,7 @@ export function SeoFormPage() {
             <Button type="submit" variant="primary" disabled={saveMut.isPending}>
               Save
             </Button>
-            <Button type="button" variant="secondary" onClick={() => navigate('/layout/seo')}>
+            <Button type="button" variant="secondary" onClick={() => navigate(route)}>
               Cancel
             </Button>
           </div>
