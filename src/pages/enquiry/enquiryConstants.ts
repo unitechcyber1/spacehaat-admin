@@ -14,6 +14,8 @@ export const LEAD_STAGES = [
   { label: 'All', value: 'all' },
   { label: 'New', value: 'New' },
   { label: 'Lead Called', value: 'Lead Called' },
+  { label: 'CNA', value: 'CNA' },
+  { label: 'Call Me Back', value: 'Call Me Back' },
   { label: 'Interested', value: 'Interested' },
   { label: 'Proposal Sent', value: 'Proposal Sent' },
   { label: 'Site Visit Aligned', value: 'Site Visit Aligned' },
