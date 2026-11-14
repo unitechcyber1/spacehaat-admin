@@ -36,6 +36,7 @@ import {
   PLAN_DURATIONS,
   SEAT_TYPES,
 } from './managedOfficeFormModel'
+import { isIndexable } from '../../lib/robots'
 
 type Mo = Record<string, any>
 type SeoBlock = 'seo' | 'new_seo'
@@ -141,8 +142,8 @@ export function ManagedOfficeFormPage() {
       const n = normalizeManagedOfficeFromApi(JSON.parse(JSON.stringify(detailQ.data.data)))
       setMo(n)
       setIndexFlags({
-        seo: (n.seo?.robots ?? 'index, follow') === 'index, follow',
-        new_seo: (n.new_seo?.robots ?? 'index, follow') === 'index, follow',
+        seo: isIndexable(n.seo?.robots),
+        new_seo: isIndexable(n.new_seo?.robots),
       })
     }
   }, [isNew, detailQ.data])

@@ -37,6 +37,7 @@ import {
   WEEKDAYS,
   WORKSPACE_STATUSES,
 } from './workspaceFormModel'
+import { isIndexable } from '../../../lib/robots'
 
 type Ws = Record<string, any>
 
@@ -135,9 +136,9 @@ export function CoworkingSpaceDetailPage() {
       const raw = detailQ.data.data as Ws
       const n = normalizeWorkspaceFromApi(JSON.parse(JSON.stringify(raw)))
       setWs(n)
-      setIndexFlag((n.seo as { robots?: string } | undefined)?.robots === 'index, follow')
-      setIndexNewSeoFlag((n.new_seo as { robots?: string } | undefined)?.robots === 'index, follow')
-      setIndexVirtualFlag((n.virtualSeo as { robots?: string } | undefined)?.robots === 'index, follow')
+      setIndexFlag(isIndexable((n.seo as { robots?: string } | undefined)?.robots))
+      setIndexNewSeoFlag(isIndexable((n.new_seo as { robots?: string } | undefined)?.robots))
+      setIndexVirtualFlag(isIndexable((n.virtualSeo as { robots?: string } | undefined)?.robots))
     }
   }, [isNew, detailQ.data])
 

@@ -10,6 +10,7 @@ import { getSeoById, saveSeo } from '../../services/seo/seo.service'
 import type { SeoFaq, SeoRecord, SeoReview, SeoSocial, SeoSocialImage } from '../../services/seo/types'
 import { SEO_VARIANTS, type SeoVariant } from './seoVariants'
 import { uploadAdminFile } from '../../services/upload/upload.service'
+import { isIndexable } from '../../lib/robots'
 
 function emptySocial(): SeoSocial {
   return { title: '', description: '', image: undefined }
@@ -113,7 +114,7 @@ export function SeoFormPage({ variant = SEO_VARIANTS.seo }: { variant?: SeoVaria
       faqs: Array.isArray(row.faqs) ? row.faqs : [],
       reviews: Array.isArray(row.reviews) ? row.reviews : [],
     })
-    setIndexFlag(row.robots === 'index, follow')
+    setIndexFlag(isIndexable(row.robots))
   }, [isEdit, existingQ.data])
 
   const saveMut = useMutation({

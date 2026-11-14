@@ -32,6 +32,7 @@ import {
   OFFICE_TYPES,
   toggleAmenity,
 } from './officeFormModel'
+import { isIndexable } from '../../lib/robots'
 
 type AnyRec = Record<string, any>
 
@@ -137,7 +138,7 @@ export function OfficeSpaceFormPage() {
     if (!isNew && detailQ.data?.data) {
       const n = normalizeOfficeFromApi(detailQ.data.data as AnyRec)
       setOs(n)
-      setIndexFlag((n.seo as AnyRec)?.robots === 'index, follow')
+      setIndexFlag(isIndexable((n.seo as AnyRec)?.robots))
     }
   }, [isNew, detailQ.data])
 

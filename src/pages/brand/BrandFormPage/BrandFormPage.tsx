@@ -12,6 +12,7 @@ import type { Brand, BrandImageSlot, BrandSeo } from '../../../services/brand/ty
 import { getCities } from '../../../services/locations/city.service'
 import { uploadAdminFile } from '../../../services/upload/upload.service'
 import { deleteS3File, saveUploadImageMeta } from '../../../services/workspace/workspace.service'
+import { isIndexable } from '../../../lib/robots'
 
 const BRAND_TYPES = [
   { id: 'coworking', name: 'Co Working' },
@@ -139,7 +140,7 @@ export function BrandFormPage() {
       cities: cityIds as string[],
     })
     const robots = b.seo?.robots
-    setIndexFlag(robots === 'index, follow')
+    setIndexFlag(isIndexable(robots))
   }, [detailQ.data])
 
   const saveMut = useMutation({
