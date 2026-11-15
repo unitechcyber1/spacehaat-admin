@@ -461,7 +461,7 @@ export function CoworkingSpaceDetailPage() {
       if (!(ws.slug ?? '').trim()) toast.error('Add a slug before preview.')
       else
         toast.error(
-          'Set VITE_WEBSITE_URL (e.g. https://spacehaat.com). For non-India spaces, set VITE_WEBSITE_URL_COUNTRY if needed.',
+          'Set VITE_WEBSITE_URL (e.g. https://spacewallah.com). For non-India spaces, set VITE_WEBSITE_URL_COUNTRY if needed.',
         )
       return
     }
@@ -804,8 +804,49 @@ export function CoworkingSpaceDetailPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-700">Rating</label>
-              <Input value={(ws.ratings as string) ?? ''} onChange={(e) => setWs({ ...ws, ratings: e.target.value })} />
+              <label className="text-xs font-semibold text-slate-700">Rating (out of 5)</label>
+              <Input
+                type="number"
+                step="0.1"
+                min="0"
+                max="5"
+                placeholder="e.g. 4.5"
+                value={(ws.ratings as string) ?? ''}
+                onChange={(e) => setWs({ ...ws, ratings: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700">Number of reviews</label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="e.g. 548"
+                value={ws.ratings_count === undefined || ws.ratings_count === null ? '' : String(ws.ratings_count)}
+                onChange={(e) => setWs({ ...ws, ratings_count: e.target.value === '' ? '' : Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700">Reviews from</label>
+              <select
+                className="mt-1 w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200"
+                value={(ws.ratings_source as string) ?? ''}
+                onChange={(e) => setWs({ ...ws, ratings_source: e.target.value })}
+              >
+                <option value="">—</option>
+                <option value="Google">Google</option>
+                <option value="SpaceWallah">SpaceWallah</option>
+              </select>
+              <p className="mt-1 text-[11px] text-slate-500">Shown on the website as “548 Google reviews”.</p>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700">Centre size (sq ft)</label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="e.g. 30000"
+                value={ws.area_sqft === undefined || ws.area_sqft === null ? '' : String(ws.area_sqft)}
+                onChange={(e) => setWs({ ...ws, area_sqft: e.target.value === '' ? '' : Number(e.target.value) })}
+              />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-700">Currency</label>

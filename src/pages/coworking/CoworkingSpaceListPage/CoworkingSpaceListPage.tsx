@@ -232,7 +232,7 @@ export function CoworkingSpaceListPage() {
       if (!(w.slug ?? '').trim()) toast.error('Missing slug.')
       else
         toast.error(
-          'Set VITE_WEBSITE_URL to your public site (e.g. https://spacehaat.com) for preview. For non-India spaces, also set VITE_WEBSITE_URL_COUNTRY if needed.',
+          'Set VITE_WEBSITE_URL to your public site (e.g. https://spacewallah.com) for preview. For non-India spaces, also set VITE_WEBSITE_URL_COUNTRY if needed.',
         )
       return
     }

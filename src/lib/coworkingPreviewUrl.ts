@@ -2,7 +2,7 @@ import { env } from './env'
 
 /**
  * Public coworking space page on the marketing site, e.g.
- * `https://spacehaat.com/coworking/awfis-ambience-mall` (slug is the path segment after `/coworking/`).
+ * `https://spacewallah.com/coworking/awfis-ambience-mall` (slug is the path segment after `/coworking/`).
  *
  * India (or empty `country_dbname`): `{VITE_WEBSITE_URL}/coworking/{slug}`
  * Other countries (when `VITE_WEBSITE_URL_COUNTRY` is set): legacy multi-country path.
