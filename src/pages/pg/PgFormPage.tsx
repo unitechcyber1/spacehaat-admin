@@ -8,6 +8,7 @@ import { MicroLocationPicker } from '../../components/MicroLocationPicker'
 import { PageShell } from '../../components/PageShell'
 import { RichTextEditor } from '../../components/RichTextEditor/RichTextEditor'
 import { Table, Td, Th, Tr } from '../../components/Table'
+import { VerificationBox } from '../../components/VerificationBox'
 import { cn } from '../../lib/ui'
 import { getCitiesByCountryOnly, getCitiesByState } from '../../services/locations/city.service'
 import { getCountries } from '../../services/locations/country.service'
@@ -331,15 +332,6 @@ export function PgFormPage() {
             onClick={() => statusActMut.mutate({ id, body: { adminApproved: true } })}
           >
             Approve (admin)
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="text-sm"
-            disabled={statusActMut.isPending}
-            onClick={() => statusActMut.mutate({ id, body: { verified: true } })}
-          >
-            Verify
           </Button>
         </div>
       ) : null}
@@ -920,15 +912,6 @@ export function PgFormPage() {
               />
               Active
             </label>
-            <label className="flex items-center gap-2 pt-8 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
-                checked={Boolean(pg.verified)}
-                onChange={(e) => setRoot({ verified: e.target.checked })}
-              />
-              Verified
-            </label>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -938,6 +921,16 @@ export function PgFormPage() {
               />
               Admin approved
             </label>
+            {!isNew && id ? (
+              <div className="sm:col-span-2 lg:col-span-4">
+                <VerificationBox
+                  kind="pg"
+                  id={String(id)}
+                  value={{ verified_at: pg.verified_at, verified_by: pg.verified_by, verified_method: pg.verified_method }}
+                  onChange={(v) => setRoot({ ...v, verified: Boolean(v.verified_at) })}
+                />
+              </div>
+            ) : null}
             <div className="sm:col-span-2">
               <label className={labelClass}>Google indexing</label>
               <select

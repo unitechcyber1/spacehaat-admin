@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bars3Icon } from '@heroicons/react/24/outline'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
+import { VerificationBox } from '../../../components/VerificationBox'
 import toast from 'react-hot-toast'
 import { Button } from '../../../components/Button'
 import { Input } from '../../../components/Input'
@@ -848,6 +849,16 @@ export function CoworkingSpaceDetailPage() {
                 onChange={(e) => setWs({ ...ws, area_sqft: e.target.value === '' ? '' : Number(e.target.value) })}
               />
             </div>
+            {!isNew && workspaceId ? (
+              <div className="sm:col-span-2 lg:col-span-3">
+                <VerificationBox
+                  kind="workspace"
+                  id={workspaceId}
+                  value={{ verified_at: ws.verified_at, verified_by: ws.verified_by, verified_method: ws.verified_method }}
+                  onChange={(v) => setWs({ ...ws, ...v })}
+                />
+              </div>
+            ) : null}
             <div>
               <label className="text-xs font-semibold text-slate-700">Currency</label>
               <Input value={(ws.currency_code as string) ?? ''} onChange={(e) => setWs({ ...ws, currency_code: e.target.value })} />
