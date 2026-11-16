@@ -938,6 +938,26 @@ export function PgFormPage() {
               />
               Admin approved
             </label>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Google indexing</label>
+              <select
+                className={cn(inputClass, 'mt-1 w-full rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-slate-200')}
+                value={String(pg.seo_index_override ?? 'auto')}
+                onChange={(e) => setRoot({ seo_index_override: e.target.value })}
+              >
+                <option value="auto">
+                  Automatic —{' '}
+                  {pg.seo_quality_ok === true ? 'in Google' : pg.seo_quality_ok === false ? 'not in Google' : 'not checked yet'}
+                </option>
+                <option value="index">Always in Google</option>
+                <option value="noindex">Never in Google</option>
+              </select>
+              <p className="mt-1 text-[11px] text-slate-500">
+                {pg.seo_quality_ok === false && pg.seo_quality_note
+                  ? `Automatic check: ${String(pg.seo_quality_note)}. Write a description specific to this PG (no template sentences) with at least 3 of its own photos, then choose “Always in Google”.`
+                  : 'Automatic keeps PGs with their own description and photos in Google; template-only pages stay out until improved.'}
+              </p>
+            </div>
           </div>,
         )}
 

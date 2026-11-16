@@ -82,6 +82,7 @@ export function emptyPgForm(): AnyRec {
     status: 'Active',
     active: true,
     verified: false,
+    seo_index_override: 'auto',
     adminApproved: false,
     form_status: '',
   }
@@ -218,6 +219,10 @@ export function normalizePgFromApi(raw: AnyRec): AnyRec {
     status: raw.status != null ? String(raw.status) : 'Active',
     active: raw.active !== false,
     verified: Boolean(raw.verified),
+    // Google indexing: team override, plus the read-only result of the quality check script.
+    seo_index_override: ['index', 'noindex'].includes(String(raw.seo_index_override)) ? String(raw.seo_index_override) : 'auto',
+    seo_quality_ok: typeof raw.seo_quality_ok === 'boolean' ? raw.seo_quality_ok : undefined,
+    seo_quality_note: raw.seo_quality_note != null ? String(raw.seo_quality_note) : '',
     adminApproved: Boolean(raw.adminApproved),
     form_status: raw.form_status != null ? String(raw.form_status) : '',
     views: typeof raw.views === 'number' ? raw.views : raw.views != null ? Number(raw.views) : undefined,
@@ -234,6 +239,10 @@ export function buildPgSavePayload(pg: AnyRec): AnyRec {
   delete out.delete
   delete out.ratings
   delete out.views
+  // Set only by the quality check script; never written back from the form.
+  delete out.seo_quality_ok
+  delete out.seo_quality_note
+  delete out.seo_quality_checked_at
 
   // Owner: if UI has ownerDetails, send object (backend can create/link PgOwner).
   // Otherwise, preserve existing owner ids if already present.
