@@ -97,17 +97,17 @@ export function Sidebar({
   }, [items])
 
   const user = getStoredUserInner()
-  const name = String(user?.name ?? user?.email ?? 'Spacehaat Admin')
+  const name = String(user?.name ?? user?.email ?? 'SpaceWallah Admin')
   const role = String(user?.role ?? 'admin')
 
   return (
     <aside className={cn('sidebar', className)}>
       <div className="brand">
         <div className="logo" aria-hidden="true">
-          S
+          <img src="/spacewallah-icon.svg" alt="" className="h-full w-full" />
         </div>
         <div className="min-w-0">
-          <div className="name">Spacehaat</div>
+          <div className="name">SpaceWallah</div>
           <div className="sub">Admin console</div>
         </div>
       </div>

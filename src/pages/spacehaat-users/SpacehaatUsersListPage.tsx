@@ -148,7 +148,7 @@ export function SpacehaatUsersListPage() {
 
   return (
     <PageShell
-      title="Spacehaat users"
+      title="SpaceWallah users"
       description="Sales team accounts (legacy admin/userList + createAdmin/updateUser/updateAccess)."
       actions={
         <Button type="button" variant="primary" onClick={() => navigate('/layout/spacehaat-users/add')}>

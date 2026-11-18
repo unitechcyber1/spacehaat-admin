@@ -1,12 +1,12 @@
 /**
- * Menu paths granted to sales users (subset of legacy Cofynd admin + Spacehaat routes).
+ * Menu paths granted to sales users (subset of legacy Cofynd admin + SpaceWallah routes).
  * Paths must match `App.tsx` layout routes where applicable.
  */
 export const SPACEHAAT_ACCESS_MENU: { path: string; title: string }[] = [
   { path: '/layout/enquiry', title: 'CRM' },
   { path: '/layout/billing', title: 'Billing' },
   { path: '/layout/users-from-listing', title: 'Users from listing' },
-  { path: '/layout/spacehaat-users', title: 'Spacehaat users' },
+  { path: '/layout/spacehaat-users', title: 'SpaceWallah users' },
   { path: '/layout/office-space', title: 'Office space' },
   { path: '/layout/managed-office', title: 'Managed offices' },
   { path: '/layout/pg', title: 'PG listings' },

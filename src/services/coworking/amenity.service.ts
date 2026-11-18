@@ -6,6 +6,7 @@ export type Amenity = {
   name?: string
   category?: string
   for_coWorking?: boolean
+  default_for_coWorking?: boolean
   checked?: boolean
 }
 

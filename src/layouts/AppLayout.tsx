@@ -50,7 +50,7 @@ const navItems: SidebarItem[] = [
   { to: '/layout/media', label: 'Media', icon: PhotoIcon, section: 'Content' },
   { to: '/layout/amenty', label: 'Amenities', icon: SparklesIcon, section: 'Content' },
   { to: '/layout/blog', label: 'Blog', icon: DocumentTextIcon, section: 'Content' },
-  { to: '/layout/spacehaat-users', label: 'Spacehaat users', icon: UserGroupIcon, section: 'Records' },
+  { to: '/layout/spacehaat-users', label: 'SpaceWallah users', icon: UserGroupIcon, section: 'Records' },
   { to: '/layout/country', label: 'Countries', icon: GlobeAltIcon, section: 'Locations' },
   { to: '/layout/state', label: 'States', icon: MapIcon, section: 'Locations' },
   { to: '/layout/city', label: 'Cities', icon: MapPinIcon, section: 'Locations' },
@@ -139,7 +139,7 @@ export function AppLayout() {
   }, [drawerOpen])
 
   const user = getStoredUserInner()
-  const name = String(user?.name ?? user?.email ?? 'Spacehaat Admin')
+  const name = String(user?.name ?? user?.email ?? 'SpaceWallah Admin')
   const role = String(user?.role ?? 'admin')
 
   return (

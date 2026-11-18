@@ -13,7 +13,7 @@ export function NoAccessPage() {
       title="No access"
       description={
         paths.length === 0
-          ? 'Your account has no menu permissions assigned. Ask an administrator to grant access in Spacehaat users → Access.'
+          ? 'Your account has no menu permissions assigned. Ask an administrator to grant access in SpaceWallah users → Access.'
           : 'You opened a URL that is not in your assigned menu. Use the sidebar or go to your default page.'
       }
     >

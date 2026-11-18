@@ -53,10 +53,10 @@ export function LoginPage() {
       <div className="login-card">
         <div className="login-brand">
           <div className="login-logo" aria-hidden="true">
-            S
+            <img src="/spacewallah-icon.svg" alt="" className="h-full w-full" />
           </div>
           <div className="min-w-0">
-            <div className="login-name">Spacehaat</div>
+            <div className="login-name">SpaceWallah</div>
             <div className="login-sub">Admin console</div>
           </div>
         </div>
@@ -84,7 +84,7 @@ export function LoginPage() {
               <EnvelopeIcon />
               <input
                 type="email"
-                placeholder="you@spacehaat.com"
+                placeholder="Your work email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"

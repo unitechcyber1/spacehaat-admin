@@ -12,6 +12,8 @@ export type AmenityRecord = {
   for_coLiving?: boolean
   for_office?: boolean
   for_coWorking?: boolean
+  /** Ticked by default on new coworking spaces. */
+  default_for_coWorking?: boolean
   for_flatspace?: boolean
   for_builder_project?: boolean
 }

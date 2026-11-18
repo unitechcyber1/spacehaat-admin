@@ -21,6 +21,7 @@ function emptyAmenity(): AmenityRecord {
     name: '',
     category: 'facilities',
     for_coWorking: false,
+    default_for_coWorking: false,
     for_office: false,
     for_coLiving: false,
     for_flatspace: false,
@@ -184,6 +185,23 @@ export function AmenityFormPage() {
               ))}
             </div>
           </FormSection>
+
+          {form.for_coWorking ? (
+            <FormSection
+              title="Coworking default"
+              description="Common amenities are ticked automatically on every new coworking space. They can still be unticked on any space."
+            >
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  checked={Boolean(form.default_for_coWorking)}
+                  onChange={(e) => setForm((f) => ({ ...f, default_for_coWorking: e.target.checked }))}
+                />
+                Tick by default on new coworking spaces
+              </label>
+            </FormSection>
+          ) : null}
 
           <div className="form-actions-bar">
             <Button type="button" variant="secondary" onClick={() => navigate('/layout/amenty')}>

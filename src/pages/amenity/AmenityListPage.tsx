@@ -142,7 +142,7 @@ export function AmenityListPage() {
                   <Tr key={id || row.name}>
                     <Td className="align-middle font-medium text-ink">{row.name ?? '—'}</Td>
                     <Td className="align-middle text-sm capitalize text-muted">{row.category || '—'}</Td>
-                    <Td className="align-middle text-center"><BoolBadge value={row.for_coWorking} trueLabel="Yes" falseLabel="No" /></Td>
+                    <Td className="align-middle text-center"><BoolBadge value={row.for_coWorking} trueLabel={row.default_for_coWorking ? 'Yes · default' : 'Yes'} falseLabel="No" /></Td>
                     <Td className="align-middle text-center"><BoolBadge value={row.for_office} trueLabel="Yes" falseLabel="No" /></Td>
                     <Td className="align-middle text-center"><BoolBadge value={row.for_coLiving} trueLabel="Yes" falseLabel="No" /></Td>
                     <Td className="align-middle text-center"><BoolBadge value={row.for_flatspace} trueLabel="Yes" falseLabel="No" /></Td>

@@ -1,5 +1,5 @@
 /**
- * Spacehaat Admin — Tailwind theme mapped onto the CRM design tokens.
+ * SpaceWallah Admin — Tailwind theme mapped onto the CRM design tokens.
  *
  * Every colour resolves to a `--c-*` CSS variable declared in `src/index.css`,
  * so utilities follow the active `[data-theme]` automatically and still accept

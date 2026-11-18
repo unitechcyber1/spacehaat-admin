@@ -136,6 +136,10 @@ export function CoworkingSpaceDetailPage() {
     if (!isNew && detailQ.data?.data) {
       const raw = detailQ.data.data as Ws
       const n = normalizeWorkspaceFromApi(JSON.parse(JSON.stringify(raw)))
+      // One "Description" field: the website shows `new_description`, else the old `description`.
+      if (!String(n.new_description ?? '').trim() && String(n.description ?? '').trim()) {
+        n.new_description = n.description
+      }
       setWs(n)
       setIndexFlag(isIndexable((n.seo as { robots?: string } | undefined)?.robots))
       setIndexNewSeoFlag(isIndexable((n.new_seo as { robots?: string } | undefined)?.robots))
@@ -150,6 +154,18 @@ export function CoworkingSpaceDetailPage() {
       return { ...emptyWorkspace() } as Ws
     })
   }, [isNew])
+
+  // New coworking spaces start with the common amenities ticked ("Default for new coworking" on the amenity).
+  const amenityDefaultsApplied = useRef(false)
+  useEffect(() => {
+    if (!isNew || amenityDefaultsApplied.current || !ws || !mastersQ.data) return
+    amenityDefaultsApplied.current = true
+    if ((ws.amenties ?? []).length) return
+    const defaults = mastersQ.data.amenities.filter((a: Amenity) => a.default_for_coWorking)
+    if (defaults.length) {
+      setWs((w) => (w ? { ...w, amenties: defaults.map((a: Amenity) => ({ id: a.id, name: a.name })) } : w))
+    }
+  }, [isNew, ws, mastersQ.data])
 
   const setLoc = useCallback((patch: Record<string, unknown>) => {
     setWs((w) => {
@@ -362,10 +378,24 @@ export function CoworkingSpaceDetailPage() {
     }
   }
 
+  /** Saved hours look like `09:30 AM`, `9:30am` or `21:30`; the dropdown uses `9:30 AM`. */
   function hourOrDefault(value: unknown, fallback: string) {
     if (typeof value !== 'string') return fallback
-    const v = value.trim()
-    if (!v) return fallback
+    const m = value.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*([ap])?\.?\s*m?\.?$/i)
+    if (!m) return fallback
+    let h = Number(m[1])
+    const min = Number(m[2] ?? 0)
+    const ap = m[3]?.toLowerCase()
+    if (h > 23 || min > 59) return fallback
+    if (!ap) {
+      // 24-hour clock
+      const period = h >= 12 ? 'PM' : 'AM'
+      h = h % 12 || 12
+      const v = `${h}:${String(min).padStart(2, '0')} ${period}`
+      return HOUR_OPTIONS.some((o) => o.value === v) ? v : fallback
+    }
+    if (h < 1 || h > 12) return fallback
+    const v = `${h}:${String(min).padStart(2, '0')} ${ap === 'p' ? 'PM' : 'AM'}`
     return HOUR_OPTIONS.some((o) => o.value === v) ? v : fallback
   }
 
@@ -912,16 +942,6 @@ export function CoworkingSpaceDetailPage() {
               <label className="text-xs font-semibold text-slate-700">Description</label>
               <RichTextEditor
                 className="mt-1"
-            contentHeightClass="h-[180px]"
-                value={(ws.description as string) ?? ''}
-                onChange={(html) => setWs({ ...ws, description: html })}
-                placeholder="Describe the space…"
-              />
-            </div>
-            <div className="sm:col-span-2 lg:col-span-3">
-              <label className="text-xs font-semibold text-slate-700">New description</label>
-              <RichTextEditor
-                className="mt-1"
                 contentHeightClass="h-[180px]"
                 value={(ws.new_description as string) ?? ''}
                 onChange={(html) => setWs({ ...ws, new_description: html })}
@@ -1271,26 +1291,6 @@ export function CoworkingSpaceDetailPage() {
           </div>
         ))}
 
-        {section('Facilities', (
-          <div className="grid gap-4 sm:grid-cols-3">
-            {(['desks', 'lounge', 'table'] as const).map((k) => (
-              <div key={k}>
-                <label className="text-xs font-semibold capitalize text-slate-700">{k}</label>
-                <Input
-                  className="mt-1"
-                  value={((ws.facilities ?? {}) as any)[k] ?? ''}
-                  onChange={(e) =>
-                    setWs({
-                      ...ws,
-                      facilities: { ...(ws.facilities as object), [k]: e.target.value },
-                    })
-                  }
-                />
-              </div>
-            ))}
-          </div>
-        ))}
-
         {section('Social media', (
           <div className="grid gap-4 sm:grid-cols-3">
             {(['facebook', 'twitter', 'instagram'] as const).map((k) => (
@@ -1356,7 +1356,7 @@ export function CoworkingSpaceDetailPage() {
                         <select
                           className="w-full max-w-[140px] rounded-lg bg-white px-2 py-1.5 text-xs ring-1 ring-slate-200"
                           disabled={!show || open24}
-                          value={hourOrDefault(h.from, '09:00 AM')}
+                          value={hourOrDefault(h.from, '9:00 AM')}
                           onChange={(e) => patchHour(day, { from: e.target.value })}
                         >
                           {HOUR_OPTIONS.map((opt) => (
@@ -1370,7 +1370,7 @@ export function CoworkingSpaceDetailPage() {
                         <select
                           className="w-full max-w-[140px] rounded-lg bg-white px-2 py-1.5 text-xs ring-1 ring-slate-200"
                           disabled={!show || open24}
-                          value={hourOrDefault(h.to, '08:00 PM')}
+                          value={hourOrDefault(h.to, '8:00 PM')}
                           onChange={(e) => patchHour(day, { to: e.target.value })}
                         >
                           {HOUR_OPTIONS.map((opt) => (
@@ -1649,9 +1649,8 @@ export function CoworkingSpaceDetailPage() {
           </div>
         ))}
 
-        {section('SEO', renderSeoFields('seo', indexFlag, setIndexFlag))}
-
-        {section('New SEO', renderSeoFields('new_seo', indexNewSeoFlag, setIndexNewSeoFlag))}
+        {/* The website reads only `new_seo`; the old `seo` block is kept in the data but no longer shown. */}
+        {section('SEO', renderSeoFields('new_seo', indexNewSeoFlag, setIndexNewSeoFlag))}
 
           </>
         ) : (

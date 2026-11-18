@@ -2,7 +2,7 @@
 @tailwind components;
 
 /* ============================================================
-   Spacehaat Admin — design system ported from the CRM (web/).
+   SpaceWallah Admin — design system ported from the CRM (web/).
    Tokens are declared as raw RGB channels (--c-*) so Tailwind can
    apply alpha modifiers (e.g. bg-surface/70), plus a colour-valued
    alias (--surface) for use in the plain CSS below.
@@ -10,9 +10,10 @@
 
 :root,
 [data-theme='light'] {
-  --c-brand: 76 175 80; /* #4CAF50 */
-  --c-brand-soft: 232 245 233; /* #E8F5E9 tinted brand surface */
-  --c-brand-ink: 46 125 50; /* #2E7D32 brand text on light */
+  /* SpaceWallah brand (logo greens) */
+  --c-brand: 12 166 120; /* #0CA678 */
+  --c-brand-soft: 230 252 245; /* #E6FCF5 tinted brand surface */
+  --c-brand-ink: 8 127 91; /* #087F5B brand text on light */
 
   --c-ink: 26 26 26; /* #1A1A1A primary text */
   --c-ink-2: 64 64 64; /* #404040 */
@@ -45,9 +46,9 @@
 }
 
 [data-theme='dark'] {
-  --c-brand: 102 187 106; /* #66BB6A */
-  --c-brand-soft: 27 61 31; /* #1B3D1F */
-  --c-brand-ink: 165 214 167; /* #A5D6A7 */
+  --c-brand: 32 201 151; /* #20C997 */
+  --c-brand-soft: 11 59 46; /* #0B3B2E */
+  --c-brand-ink: 150 242 215; /* #96F2D7 */
 
   --c-ink: 244 242 238; /* #F4F2EE */
   --c-ink-2: 216 213 206; /* #D8D5CE */
@@ -269,11 +270,11 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: var(--brand);
+  background: #0b3b2e;
   color: #fff;
   font-weight: 800;
   font-size: 14px;
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.35);
+  box-shadow: 0 2px 8px rgba(12, 166, 120, 0.35);
 }
 .brand .name {
   font-weight: 700;
@@ -1690,11 +1691,12 @@ label.fld .fld-hint,
   flex: none;
   display: grid;
   place-items: center;
-  background: var(--brand);
+  overflow: hidden;
+  background: #0b3b2e;
   color: #fff;
   font-weight: 800;
   font-size: 16px;
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.25);
+  box-shadow: 0 2px 8px rgba(12, 166, 120, 0.25);
 }
 .login-name {
   font-weight: 800;
