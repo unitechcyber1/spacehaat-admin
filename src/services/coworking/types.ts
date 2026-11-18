@@ -15,6 +15,10 @@ export type WorkspaceListItem = {
   name?: string
   status?: string
   slug?: string
+  /** Website "Verified on <date>" badge (set from the coworking form). */
+  verified_at?: string | null
+  verified_by?: string
+  verified_method?: string
   country_dbname?: string
   location?: {
     name?: string

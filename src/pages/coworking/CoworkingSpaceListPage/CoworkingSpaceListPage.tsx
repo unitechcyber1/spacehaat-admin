@@ -6,6 +6,7 @@ import {
   ClockIcon,
   EyeIcon,
   PencilSquareIcon,
+  ShieldCheckIcon,
   TrashIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline'
@@ -66,6 +67,28 @@ function openCoworkingEditInNewTab(workspaceId: string) {
   const prefix = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
   const path = `${prefix}/layout/coworking/spaces/detail/${workspaceId}`.replace(/\/+/g, '/')
   window.open(new URL(path, window.location.origin).href, '_blank', 'noopener,noreferrer')
+}
+
+const VERIFY_METHOD: Record<string, string> = { call: 'Phone call', visit: 'Site visit', documents: 'Documents' }
+
+/** Website "Verified on <date>" badge state for one row. */
+function VerifiedCell({ ws }: { ws: WorkspaceListItem }) {
+  const d = ws.verified_at ? new Date(ws.verified_at) : null
+  if (!d || Number.isNaN(d.getTime())) {
+    return <span className="text-xs font-medium text-slate-400">Not verified</span>
+  }
+  const date = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const how = ws.verified_method ? VERIFY_METHOD[ws.verified_method] || ws.verified_method : ''
+  const title = ['Verified on ' + date, ws.verified_by ? 'by ' + ws.verified_by : '', how ? '(' + how + ')' : ''].filter(Boolean).join(' ')
+  return (
+    <span className="inline-flex flex-col" title={title}>
+      <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-emerald-700">
+        <ShieldCheckIcon className="h-4 w-4" aria-hidden />
+        Verified
+      </span>
+      <span className="whitespace-nowrap text-xs text-slate-500">{date}</span>
+    </span>
+  )
 }
 
 export function CoworkingSpaceListPage() {
@@ -425,7 +448,7 @@ export function CoworkingSpaceListPage() {
         <Table>
           <thead className="bg-surface-2">
             <tr>
-              <Th className="w-[28%]">
+              <Th className="w-[25%]">
                 <button
                   type="button"
                   className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
@@ -443,7 +466,7 @@ export function CoworkingSpaceListPage() {
                   City {sortIndicator('city')}
                 </button>
               </Th>
-              <Th className="w-[22%]">
+              <Th className="w-[18%]">
                 <button
                   type="button"
                   className="flex items-center gap-1 font-semibold uppercase tracking-wide text-slate-600 hover:text-violet-700"
@@ -461,6 +484,7 @@ export function CoworkingSpaceListPage() {
                   Status {sortIndicator('status')}
                 </button>
               </Th>
+              <Th className="w-[11%]">Verified</Th>
               <Th className="w-[8%] text-center">Edit</Th>
               <Th className="w-[8%] text-center">Preview</Th>
               <Th className="w-[16%] text-center">Actions</Th>
@@ -469,7 +493,7 @@ export function CoworkingSpaceListPage() {
           <tbody>
             {!listQ.isLoading && rows.length === 0 ? (
               <Tr>
-                <Td colSpan={7} className="py-16 text-center text-sm text-slate-500">
+                <Td colSpan={8} className="py-16 text-center text-sm text-slate-500">
                   No workspaces match these filters. Try another name, city, micro-location, or status.
                 </Td>
               </Tr>
@@ -500,6 +524,9 @@ export function CoworkingSpaceListPage() {
                   >
                     {statusLabel(w.status)}
                   </span>
+                </Td>
+                <Td className="align-middle">
+                  <VerifiedCell ws={w} />
                 </Td>
                 <Td className="align-middle text-center">
                   <IconTooltip label="Edit">

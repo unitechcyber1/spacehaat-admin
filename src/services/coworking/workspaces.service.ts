@@ -66,6 +66,15 @@ export async function savePriorityWorkspace(payload: {
   return res.data
 }
 
+/** Save new priority positions (1 = top) for one scope: overall, location (city) or micro_location. */
+export async function reorderPriorityWorkspaces(type: string, items: { id: string; order: number }[]) {
+  const res = await apiClient.put<ObjectResponse<unknown>>('admin/workSpace/priority/drag', {
+    priorityType: type,
+    updatedProjects: items.map(({ id, order }) => ({ _id: id, priority: { [type]: { order } } })),
+  })
+  return res.data
+}
+
 export async function changePrioritySpacesOrder(payload: Record<string, unknown>) {
   const res = await apiClient.post<ObjectResponse<unknown>>(
     'admin/workSpace/priority/changeOrder',

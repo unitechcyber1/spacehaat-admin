@@ -16,6 +16,8 @@ type Props = {
   buttonClassName?: string
   id?: string
   'aria-labelledby'?: string
+  /** Text for the empty choice (default "All cities"), e.g. "Select city" when a city is required. */
+  emptyLabel?: string
 }
 
 export function SearchableCitySelect({
@@ -27,6 +29,7 @@ export function SearchableCitySelect({
   buttonClassName,
   id,
   'aria-labelledby': ariaLabelledBy,
+  emptyLabel = 'All cities',
 }: Props) {
   const [query, setQuery] = useState('')
 
@@ -37,7 +40,7 @@ export function SearchableCitySelect({
   }, [cities, query])
 
   const selectedName =
-    value === '' ? 'All cities' : cities.find((c) => String(c.id) === String(value))?.name ?? 'All cities'
+    value === '' ? emptyLabel : cities.find((c) => String(c.id) === String(value))?.name ?? emptyLabel
 
   return (
     <Popover className="relative w-full">
@@ -92,7 +95,7 @@ export function SearchableCitySelect({
                   close()
                 }}
               >
-                All cities
+                {emptyLabel}
               </button>
               {filtered.length === 0 ? (
                 <div className="px-3 py-6 text-center text-sm text-slate-500">No cities match.</div>
