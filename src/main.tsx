@@ -7,7 +7,11 @@ import './index.css'
 import App from './App.tsx'
 import { ThemeProvider } from './lib/theme'
 
-const queryClient = new QueryClient()
+// No automatic re-download when the browser tab regains focus or the network reconnects: edit pages copy the
+// downloaded record into their form, so a silent refetch would wipe values typed but not yet saved.
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { refetchOnWindowFocus: false, refetchOnReconnect: false } },
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

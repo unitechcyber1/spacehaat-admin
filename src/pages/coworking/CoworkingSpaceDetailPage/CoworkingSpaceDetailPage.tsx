@@ -132,8 +132,12 @@ export function CoworkingSpaceDetailPage() {
 
   const cityId = loc.city as string
 
+  // Fill the form from the server only on first load of each space (a save fills it from the saved record).
+  // Any later refetch of the same space must not overwrite values being edited.
+  const loadedFor = useRef<string | null>(null)
   useEffect(() => {
-    if (!isNew && detailQ.data?.data) {
+    if (!isNew && detailQ.data?.data && loadedFor.current !== workspaceId) {
+      loadedFor.current = workspaceId ?? null
       const raw = detailQ.data.data as Ws
       const n = normalizeWorkspaceFromApi(JSON.parse(JSON.stringify(raw)))
       // One "Description" field: the website shows `new_description`, else the old `description`.
@@ -145,7 +149,7 @@ export function CoworkingSpaceDetailPage() {
       setIndexNewSeoFlag(isIndexable((n.new_seo as { robots?: string } | undefined)?.robots))
       setIndexVirtualFlag(isIndexable((n.virtualSeo as { robots?: string } | undefined)?.robots))
     }
-  }, [isNew, detailQ.data])
+  }, [isNew, detailQ.data, workspaceId])
 
   useEffect(() => {
     if (!isNew) return
@@ -186,6 +190,7 @@ export function CoworkingSpaceDetailPage() {
       toast.success('Workspace saved')
       qc.invalidateQueries({ queryKey: ['coworking-spaces'] })
       if (id && !isNew) {
+        loadedFor.current = null // just saved, so let the fresh copy from the server refill the form
         qc.invalidateQueries({ queryKey: ['workspace', id] })
       }
       if (isNew && id) {
