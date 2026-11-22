@@ -18,6 +18,9 @@ type Props = {
   'aria-labelledby'?: string
   /** Text for the empty choice (default "All cities"), e.g. "Select city" when a city is required. */
   emptyLabel?: string
+  /** Search box placeholder and no-results text, for lists other than cities. */
+  searchPlaceholder?: string
+  noMatchText?: string
 }
 
 export function SearchableCitySelect({
@@ -30,6 +33,8 @@ export function SearchableCitySelect({
   id,
   'aria-labelledby': ariaLabelledBy,
   emptyLabel = 'All cities',
+  searchPlaceholder = 'Search cities…',
+  noMatchText = 'No cities match.',
 }: Props) {
   const [query, setQuery] = useState('')
 
@@ -76,7 +81,7 @@ export function SearchableCitySelect({
               <input
                 type="search"
                 className="w-full rounded-lg bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                placeholder="Search cities…"
+                placeholder={searchPlaceholder}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
@@ -98,7 +103,7 @@ export function SearchableCitySelect({
                 {emptyLabel}
               </button>
               {filtered.length === 0 ? (
-                <div className="px-3 py-6 text-center text-sm text-slate-500">No cities match.</div>
+                <div className="px-3 py-6 text-center text-sm text-slate-500">{noMatchText}</div>
               ) : (
                 filtered.map((c) => (
                   <button

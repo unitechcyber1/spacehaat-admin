@@ -38,6 +38,7 @@ const navItems: SidebarItem[] = [
   { to: '/layout/billing/invoices', label: 'Billing', icon: CurrencyDollarIcon, section: 'Main' },
   // { to: '/layout/office-space', label: 'Office space', icon: BriefcaseIcon, section: 'Office space' },
   { to: '/layout/managed-office', label: 'Managed offices', icon: BriefcaseIcon, section: 'Managed office' },
+  { to: '/layout/building', label: 'Office buildings', icon: BuildingOffice2Icon, section: 'Managed office' },
   { to: '/layout/pg', label: 'PG listings', icon: HomeModernIcon, section: 'PG' },
   { to: '/layout/pg/priority', label: 'PG priority', icon: QueueListIcon, section: 'PG' },
   { to: '/layout/coworking/plans', label: 'Coworking plans', icon: Square3Stack3DIcon, section: 'Coworking' },

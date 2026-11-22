@@ -3,6 +3,7 @@ import { Bars3Icon } from '@heroicons/react/24/outline'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { VerificationBox } from '../../../components/VerificationBox'
+import { BuildingPicker } from '../../../components/BuildingPicker'
 import toast from 'react-hot-toast'
 import { Button } from '../../../components/Button'
 import { Input } from '../../../components/Input'
@@ -894,6 +895,13 @@ export function CoworkingSpaceDetailPage() {
                 />
               </div>
             ) : null}
+            <div className="sm:col-span-2 lg:col-span-3">
+              {!isNew && workspaceId ? (
+                <BuildingPicker type="coworking" id={workspaceId} />
+              ) : (
+                <p className="text-xs text-slate-500">Save this space first, then you can put it in an office building.</p>
+              )}
+            </div>
             <div>
               <label className="text-xs font-semibold text-slate-700">Currency</label>
               <Input value={(ws.currency_code as string) ?? ''} onChange={(e) => setWs({ ...ws, currency_code: e.target.value })} />

@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
+import { BuildingPicker } from '../../components/BuildingPicker'
 import { MicroLocationPicker } from '../../components/MicroLocationPicker'
 import { PageShell } from '../../components/PageShell'
 import { RichTextEditor } from '../../components/RichTextEditor'
@@ -572,6 +573,13 @@ export function ManagedOfficeFormPage() {
               <Input value={loc.micro_location_string ?? ''} onChange={(e) => setLoc({ micro_location_string: e.target.value })} placeholder="Shown when no micro-location is linked" />,
             )}
             {field('Building name', <Input value={loc.building_name ?? ''} onChange={(e) => setLoc({ building_name: e.target.value })} />)}
+            <div className="sm:col-span-2 lg:col-span-3">
+              {!isNew && managedOfficeId ? (
+                <BuildingPicker type="managed_office" id={managedOfficeId} />
+              ) : (
+                <p className="text-xs text-slate-500">Save this office first, then you can put it in an office building.</p>
+              )}
+            </div>
             {field('Address', <Input value={loc.address1 ?? ''} onChange={(e) => setLoc({ address1: e.target.value })} />, 'sm:col-span-2')}
             {field('Floor', <Input value={loc.floor ?? ''} onChange={(e) => setLoc({ floor: e.target.value })} />)}
             {field('Postal code', <Input value={loc.postal_code ?? ''} onChange={(e) => setLoc({ postal_code: e.target.value })} />)}

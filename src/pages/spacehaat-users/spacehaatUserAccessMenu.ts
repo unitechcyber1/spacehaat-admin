@@ -9,6 +9,7 @@ export const SPACEHAAT_ACCESS_MENU: { path: string; title: string }[] = [
   { path: '/layout/spacehaat-users', title: 'SpaceWallah users' },
   { path: '/layout/office-space', title: 'Office space' },
   { path: '/layout/managed-office', title: 'Managed offices' },
+  { path: '/layout/building', title: 'Office buildings' },
   { path: '/layout/pg', title: 'PG listings' },
   { path: '/layout/pg/priority', title: 'PG priority' },
   { path: '/layout/coworking/plans', title: 'Coworking plans' },

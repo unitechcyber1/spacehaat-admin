@@ -29,6 +29,8 @@ import { OfficeSpaceListPage } from './pages/office-space/OfficeSpaceListPage'
 import { OfficeSpaceFormPage } from './pages/office-space/OfficeSpaceFormPage'
 import { ManagedOfficeListPage } from './pages/managed-office/ManagedOfficeListPage'
 import { ManagedOfficeFormPage } from './pages/managed-office/ManagedOfficeFormPage'
+import { BuildingListPage } from './pages/building/BuildingListPage'
+import { BuildingFormPage } from './pages/building/BuildingFormPage'
 import { PgFormPage } from './pages/pg/PgFormPage'
 import { PgListPage } from './pages/pg/PgListPage'
 import { PgPriorityPage } from './pages/pg/PgPriorityPage'
@@ -180,6 +182,10 @@ function App() {
         <Route path="managed-office" element={<ManagedOfficeListPage />} />
         <Route path="managed-office/add" element={<ManagedOfficeFormPage />} />
         <Route path="managed-office/detail/:managedOfficeId" element={<ManagedOfficeFormPage />} />
+
+        <Route path="building" element={<BuildingListPage />} />
+        <Route path="building/add" element={<BuildingFormPage />} />
+        <Route path="building/detail/:buildingId" element={<BuildingFormPage key="edit" />} />
 
         <Route path="builder" element={<PlaceholderPage title="Builder" />} />
         <Route path="builder/detail/:builderId" element={<PlaceholderPage title="Builder / Detail" />} />
