@@ -297,11 +297,11 @@ export function OfficeSpaceListPage() {
   return (
     <>
       <PageShell
-        title="Office space"
-        description="Office Space table — filters and columns match the legacy Angular admin list."
+        title="Private offices"
+        description="Offices for lease: area, rent and furnishing. They also show in the Haat app under Inventory › Private."
         actions={
           <Button variant="primary" onClick={() => navigate('/layout/office-space/add')}>
-            Add office space
+            Add private office
           </Button>
         }
       >

@@ -13,6 +13,7 @@ import {
   EnvelopeIcon,
   GlobeAltIcon,
   HomeModernIcon,
+  KeyIcon,
   MapIcon,
   MapPinIcon,
   MoonIcon,
@@ -37,9 +38,10 @@ import { cn } from '../lib/ui'
 const navItems: SidebarItem[] = [
   { to: '/layout/enquiry', label: 'Enquiry', icon: TicketIcon, section: 'Main' },
   { to: '/layout/billing/invoices', label: 'Billing', icon: CurrencyDollarIcon, section: 'Main' },
-  // { to: '/layout/office-space', label: 'Office space', icon: BriefcaseIcon, section: 'Office space' },
   { to: '/layout/managed-office', label: 'Managed offices', icon: BriefcaseIcon, section: 'Managed office' },
   { to: '/layout/building', label: 'Office buildings', icon: BuildingOffice2Icon, section: 'Managed office' },
+  // Offices for lease (the `OfficeSpace` records): area, rent per sq ft, furnishing.
+  { to: '/layout/office-space', label: 'Private offices', icon: KeyIcon, section: 'Private office' },
   { to: '/layout/virtual-office', label: 'Virtual offices', icon: EnvelopeIcon, section: 'Virtual office' },
   { to: '/layout/pg', label: 'PG listings', icon: HomeModernIcon, section: 'PG' },
   { to: '/layout/pg/priority', label: 'PG priority', icon: QueueListIcon, section: 'PG' },

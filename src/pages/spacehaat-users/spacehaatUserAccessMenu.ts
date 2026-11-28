@@ -7,7 +7,7 @@ export const SPACEHAAT_ACCESS_MENU: { path: string; title: string }[] = [
   { path: '/layout/billing', title: 'Billing' },
   { path: '/layout/users-from-listing', title: 'Users from listing' },
   { path: '/layout/spacehaat-users', title: 'SpaceWallah users' },
-  { path: '/layout/office-space', title: 'Office space' },
+  { path: '/layout/office-space', title: 'Private offices' },
   { path: '/layout/managed-office', title: 'Managed offices' },
   { path: '/layout/building', title: 'Office buildings' },
   { path: '/layout/pg', title: 'PG listings' },

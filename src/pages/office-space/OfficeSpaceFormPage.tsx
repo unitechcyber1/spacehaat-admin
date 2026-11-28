@@ -57,7 +57,7 @@ export function OfficeSpaceFormPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const isNew = !officeSpaceId
-  const pageTitle = isNew ? 'Add office space' : 'Edit office space'
+  const pageTitle = isNew ? 'Add private office' : 'Edit private office'
 
   const galleryRef = useRef<HTMLInputElement>(null)
   const seoTwitterRef = useRef<HTMLInputElement>(null)
@@ -173,7 +173,7 @@ export function OfficeSpaceFormPage() {
       return saveOfficeSpace(body)
     },
     onSuccess: (res: any) => {
-      toast.success('Office space saved')
+      toast.success('Private office saved')
       qc.invalidateQueries({ queryKey: ['office-spaces'] })
       const saved = res?.data as AnyRec | undefined
       const id = saved?.id ?? saved?._id ?? os?.id ?? os?._id
@@ -384,7 +384,7 @@ export function OfficeSpaceFormPage() {
   return (
     <PageShell
       title={pageTitle}
-      description="Office space details, location, amenities, gallery, and SEO — aligned with the legacy Angular admin form."
+      description="Office for lease: details, rent, location, amenities, photos and SEO."
       actions={
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="secondary" onClick={() => navigate('/layout/office-space')}>
