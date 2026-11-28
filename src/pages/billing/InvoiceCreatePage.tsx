@@ -225,7 +225,7 @@ export function InvoiceCreatePage() {
   const selectedSeller = stateProfiles.find((s) => s.state_code === sellerStateCode)
 
   const sellerDisplayName = () =>
-    billingProfile?.legal_name || billingProfile?.trade_name || 'SpaceHaat'
+    billingProfile?.legal_name || billingProfile?.trade_name || 'SpaceWallah'
 
   const sellerAddressLine = () => {
     const a = selectedSeller?.address
@@ -462,7 +462,7 @@ export function InvoiceCreatePage() {
               >
                 {stateProfiles.map((s) => (
                   <option key={s.state_code} value={s.state_code}>
-                    {billingProfile?.legal_name || 'SpaceHaat'} — {s.state} ({s.state_code})
+                    {billingProfile?.legal_name || 'SpaceWallah'} — {s.state} ({s.state_code})
                   </option>
                 ))}
               </select>

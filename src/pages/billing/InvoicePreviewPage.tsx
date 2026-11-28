@@ -160,15 +160,14 @@ export function InvoicePreviewPage() {
 
   const handleDownload = async () => {
     if (!preview) return
-    if (!preview.pdf_url) {
-      await handleGenerate(true)
-      return
-    }
     setDownloading(true)
     try {
-      await downloadPdf(invoiceId!, preview.filename, preview.pdf_url)
-    } catch {
-      toast.error('Could not load PDF — try again')
+      // The server makes the PDF if there is no up-to-date saved copy.
+      await downloadPdf(invoiceId!, preview.filename)
+      qc.invalidateQueries({ queryKey: ['billing', 'invoice-preview', invoiceId] })
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(msg ?? 'Could not download the PDF — try again')
     } finally {
       setDownloading(false)
     }
@@ -180,9 +179,9 @@ export function InvoicePreviewPage() {
       const result = await generatePdf(invoiceId!)
       toast.success('PDF ready')
       qc.invalidateQueries({ queryKey: ['billing', 'invoice-preview', invoiceId] })
-      if (andDownload && result?.pdf_url) {
+      if (andDownload) {
         setDownloading(true)
-        await downloadPdf(invoiceId!, result.filename, result.pdf_url)
+        await downloadPdf(invoiceId!, result?.filename)
       }
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message

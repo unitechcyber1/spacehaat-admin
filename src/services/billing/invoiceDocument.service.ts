@@ -73,52 +73,40 @@ export async function openPrintTab(invoiceId: string, printHtml?: string): Promi
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
-export async function viewPdf(invoiceId: string, pdfUrl?: string | null): Promise<void> {
-  if (pdfUrl) {
-    window.open(pdfUrl, '_blank', 'noopener,noreferrer')
-    return
+/**
+ * The PDF always comes through the API: it makes the file again when the saved copy is from an older layout
+ * (the SpaceHaat logo) or when no copy was saved, so a stale or missing S3 link never blocks viewing/downloading.
+ * `pdfUrl` is accepted for older callers and ignored.
+ */
+export async function viewPdf(invoiceId: string, _pdfUrl?: string | null): Promise<void> {
+  // Open the tab first (inside the click) so pop-up blockers allow it, then fill it once the PDF arrives.
+  const tab = window.open('', '_blank')
+  try {
+    const { blob } = await fetchPdf(invoiceId)
+    const url = URL.createObjectURL(blob)
+    if (tab) tab.location.href = url
+    else window.open(url, '_blank')
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (e) {
+    tab?.close()
+    throw e
   }
-  const blob = await fetchPdfBlob(invoiceId)
-  const url = URL.createObjectURL(blob)
-  window.open(url, '_blank', 'noopener,noreferrer')
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 export async function downloadPdf(
   invoiceId: string,
   filenameHint?: string,
-  pdfUrl?: string | null,
+  _pdfUrl?: string | null,
 ): Promise<string> {
-  if (pdfUrl) {
-    try {
-      const res = await fetch(pdfUrl)
-      if (!res.ok) throw new Error('S3 fetch failed')
-      const blob = await res.blob()
-      const name = filenameHint ?? defaultFilename(invoiceId)
-      triggerDownload(blob, name)
-      return name
-    } catch {
-      // fall through to API
-    }
-  }
-
-  const res = await apiClient.get<Blob>(`admin/invoices/${invoiceId}/pdf`, {
-    params: { download: '1' },
-    responseType: 'blob',
-  })
-  const blob = res.data
-  if (!blob) throw new Error('Empty PDF response')
-  const cd = res.headers['content-disposition'] as string | undefined
-  const name = filenameHint ?? parseContentDisposition(cd) ?? defaultFilename(invoiceId)
+  const { blob, filename } = await fetchPdf(invoiceId, { download: true })
+  const name = (filenameHint || filename || defaultFilename(invoiceId)).replace(/\//g, '-')
   triggerDownload(blob, name)
   return name
 }
 
 export async function regenerateAndDownload(invoiceId: string): Promise<GeneratePdfResult> {
   const data = await generatePdf(invoiceId)
-  if (data?.pdf_url) {
-    await downloadPdf(invoiceId, data.filename, data.pdf_url)
-  }
+  await downloadPdf(invoiceId, data?.filename)
   return data
 }
 
@@ -135,16 +123,23 @@ export async function pollPdfUrl(
   return null
 }
 
-async function fetchPdfBlob(invoiceId: string, regenerate = false): Promise<Blob> {
+async function fetchPdf(
+  invoiceId: string,
+  { download = false, regenerate = false }: { download?: boolean; regenerate?: boolean } = {},
+): Promise<{ blob: Blob; filename: string | null }> {
   const params: Record<string, string> = {}
+  if (download) params.download = '1'
   if (regenerate) params.regenerate = '1'
   const res = await apiClient.get<Blob>(`admin/invoices/${invoiceId}/pdf`, {
     params,
     responseType: 'blob',
+    timeout: 120_000,
   })
   const blob = res.data
-  if (!blob) throw new Error('Empty PDF response')
-  return blob
+  if (!blob || !blob.size) throw new Error('Empty PDF response')
+  if (blob.type && !blob.type.includes('pdf')) throw new Error('Server did not return a PDF')
+  const cd = res.headers['content-disposition'] as string | undefined
+  return { blob, filename: parseContentDisposition(cd) }
 }
 
 function triggerDownload(blob: Blob, filename: string): void {
@@ -152,8 +147,11 @@ function triggerDownload(blob: Blob, filename: string): void {
   const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = filename
+  document.body.appendChild(anchor)
   anchor.click()
-  URL.revokeObjectURL(url)
+  anchor.remove()
+  // Revoking straight away can cancel the download in some browsers.
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
 function parseContentDisposition(header: string | null | undefined): string | null {
@@ -163,5 +161,5 @@ function parseContentDisposition(header: string | null | undefined): string | nu
 }
 
 function defaultFilename(invoiceId: string): string {
-  return `SpaceHaat-Invoice-${invoiceId}.pdf`
+  return `SpaceWallah-Invoice-${invoiceId}.pdf`
 }

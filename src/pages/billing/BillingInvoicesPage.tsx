@@ -17,7 +17,6 @@ import { getInvoiceMeta, getInvoices } from '../../services/billing/billing.serv
 import { listBillingClients } from '../../services/billing/billingClient.service'
 import {
   downloadPdf,
-  generatePdf,
   openPrintTab,
   viewPdf,
 } from '../../services/billing/invoiceDocument.service'
@@ -119,23 +118,9 @@ export function BillingInvoicesPage() {
     setRowDocBusy((prev) => ({ ...prev, [id]: action }))
   }
 
-  const ensurePdfAndRetry = async (row: Invoice, retry: () => void) => {
-    if (row.pdf_url) {
-      toast.error('Could not load PDF — try again')
-      return
-    }
-    try {
-      const result = await generatePdf(invoiceRecordId(row))
-      if (result?.pdf_url) {
-        row.pdf_url = result.pdf_url
-        retry()
-      } else {
-        toast.error('Could not load PDF — try again')
-      }
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
-      toast.error(msg ?? 'Could not load PDF — try again')
-    }
+  const pdfError = (e: unknown) => {
+    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+    toast.error(msg ?? 'Could not load the PDF — try again')
   }
 
   const handlePrint = async (row: Invoice) => {
@@ -154,9 +139,9 @@ export function BillingInvoicesPage() {
     const id = invoiceRecordId(row)
     setRowBusy(id, 'view')
     try {
-      await viewPdf(id, row.pdf_url)
-    } catch {
-      await ensurePdfAndRetry(row, () => void handleViewPdf(row))
+      await viewPdf(id)
+    } catch (e) {
+      pdfError(e)
     } finally {
       setRowBusy(id, null)
     }
@@ -166,9 +151,9 @@ export function BillingInvoicesPage() {
     const id = invoiceRecordId(row)
     setRowBusy(id, 'download')
     try {
-      await downloadPdf(id, undefined, row.pdf_url)
-    } catch {
-      await ensurePdfAndRetry(row, () => void handleDownloadPdf(row))
+      await downloadPdf(id)
+    } catch (e) {
+      pdfError(e)
     } finally {
       setRowBusy(id, null)
     }
